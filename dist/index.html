@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>DAF Trainer</title>
+<style>
+:root{
+  --blue:#0B3BE8;
+  --paper:#E9E5DA;
+  --ink:#0A0A0A;
+  --muted:rgba(10,10,10,.45);
+  --hair:rgba(10,10,10,.18);
+  --slab:rgba(10,10,10,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:"Segoe UI Variable Display","Segoe UI",Arial,sans-serif;
+  font-weight:700;
+  overflow:hidden;
+  user-select:none;
+  cursor:default;
+}
+.mono{font-family:"Cascadia Mono",Consolas,monospace;font-weight:500;font-variant-numeric:tabular-nums}
+.caps{text-transform:uppercase;letter-spacing:.16em;font-size:10px;font-weight:600}
+
+/* ---------- каркас ---------- */
+#app{height:100vh;display:flex;flex-direction:column}
+header{
+  height:52px;background:var(--ink);color:var(--paper);
+  display:flex;align-items:center;padding:0 22px;gap:14px;flex:none;
+}
+header.fault{background:var(--blue)}
+#logo{font-size:17px;letter-spacing:.04em}
+#dash{opacity:.5}
+#status{font-size:10px;text-transform:uppercase;letter-spacing:.16em}
+header .right{margin-left:auto;display:flex;align-items:center;gap:16px}
+#route{font-size:10px;letter-spacing:.12em;text-transform:uppercase;opacity:.65;
+  max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ghost{
+  background:transparent;color:inherit;border:2px solid currentColor;border-radius:0;
+  font:inherit;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  padding:7px 14px;cursor:pointer;
+}
+.ghost:hover{background:var(--paper);color:var(--ink)}
+header .ghost:hover{background:var(--paper);color:var(--ink)}
+
+/* ---------- полоса дисков ---------- */
+#band{flex:1;min-height:0;border-bottom:1px solid var(--hair);position:relative}
+#discs{width:100%;height:100%;display:block}
+
+/* ---------- нижняя панель ---------- */
+#strip{height:208px;flex:none;display:grid;grid-template-columns:404px 168px 1fr}
+#strip>*{padding:16px 22px}
+#delayCell{border-right:1px solid var(--hair)}
+#tilesCell{border-right:1px solid var(--hair);display:flex;flex-direction:column;gap:8px;justify-content:center}
+#rightCell{display:flex;gap:24px;align-items:flex-start}
+
+#delayValue{font-size:150px;line-height:.82;letter-spacing:-.05em;display:flex;align-items:baseline}
+#delayValue small{font-size:20px;letter-spacing:0;margin-left:6px}
+#delaySlab{height:40px;background:var(--slab);margin-top:14px;position:relative;cursor:pointer}
+#delayFill{position:absolute;left:0;top:0;bottom:0;background:var(--blue)}
+#delayMarker{position:absolute;top:0;bottom:0;width:8px;background:var(--ink)}
+#scale{display:flex;justify-content:space-between;margin-top:5px;font-size:9.5px}
+#scale span{color:var(--muted)}
+#floorNote{margin-top:10px;font-size:11px;font-weight:600;line-height:1.4;color:var(--blue)}
+
+.tile{
+  background:transparent;border:2px solid var(--ink);color:var(--ink);
+  font:inherit;font-size:12px;height:32px;border-radius:0;cursor:pointer;
+}
+.tile.on{background:var(--ink);color:var(--paper)}
+.tile:active{transform:translateY(1px)}
+.tilerow{display:flex;gap:8px}
+.tilerow .tile{flex:1}
+#longTile{height:30px;font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+
+#startWrap{display:flex;flex-direction:column;align-items:center;gap:10px;width:120px}
+#startBtn{
+  width:84px;height:84px;border-radius:50%;border:2px solid var(--ink);
+  background:var(--ink);color:var(--paper);font:inherit;font-size:14px;
+  text-transform:uppercase;letter-spacing:.08em;cursor:pointer;
+}
+#startBtn.running{background:var(--blue);border-color:var(--blue);color:#fff}
+#hint{font-size:11px;line-height:1.4;font-weight:600;text-align:center;color:var(--muted)}
+
+.meters{display:flex;gap:12px}
+.meter{width:36px}
+.meterbar{height:88px;background:var(--slab);position:relative;cursor:ns-resize}
+.meterfill{position:absolute;left:0;right:0;bottom:0;background:var(--blue)}
+.meterfill.clip{background:var(--ink)}
+.meterline{position:absolute;left:0;right:0;height:2px;background:var(--ink)}
+.meterzone{position:absolute;left:0;right:0;height:1px;background:rgba(10,10,10,.25)}
+.meter .caps{margin-top:7px}
+.meter .val{font-size:10px;margin-top:2px;color:var(--muted)}
+
+#sessionCell{margin-left:auto;text-align:right}
+#clock{font-size:40px;letter-spacing:-.02em;line-height:1}
+#timerState{font-size:9.5px;color:var(--muted);margin-top:2px}
+#timerTiles{display:flex;gap:8px;margin-top:8px;justify-content:flex-end}
+#timerTiles .tile{width:56px}
+
+/* ---------- настройки ---------- */
+#settings{display:none;flex:1;min-height:0;overflow:auto}
+#settings.show{display:block}
+#setGrid{display:grid;grid-template-columns:1fr 1fr;gap:0;min-height:100%}
+#setGrid>div{padding:22px;border-right:1px solid var(--hair)}
+#setGrid>div:last-child{border-right:0}
+.devlist{margin:8px 0 22px}
+.dev{
+  display:flex;align-items:center;gap:12px;padding:10px 12px;
+  border:1px solid var(--hair);margin-bottom:-1px;cursor:pointer;font-size:13px;font-weight:600;
+}
+.dev.sel{background:var(--blue);color:#fff;border-color:var(--blue);position:relative;z-index:1}
+.dev .box{width:13px;height:13px;border:2px solid currentColor;flex:none}
+.dev.sel .box{background:#fff}
+.dev .rate{margin-left:auto;font-size:10px;opacity:.6}
+#rtValue{font-size:56px;letter-spacing:-.04em;line-height:1;margin-top:6px}
+#rtValue small{font-size:16px;letter-spacing:0;margin-left:4px}
+#rtNote{font-size:11.5px;font-weight:600;line-height:1.5;margin-top:12px;max-width:380px;color:var(--muted)}
+#measureBtn{margin-top:20px}
+.footer{
+  border-top:1px solid var(--hair);padding:14px 22px;display:flex;align-items:center;gap:14px;
+}
+.footer .right{margin-left:auto;display:flex;gap:10px}
+.solid{
+  background:var(--ink);color:var(--paper);border:2px solid var(--ink);border-radius:0;
+  font:inherit;font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:9px 18px;cursor:pointer;
+}
+#err{color:var(--blue);font-size:12px;font-weight:600;margin-top:10px;min-height:16px}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header id="hdr">
+    <span id="logo">DAF</span><span id="dash">—</span>
+    <span id="status">ПОКОЙ</span>
+    <div class="right">
+      <span id="route"></span>
+      <button class="ghost" id="settingsBtn">Настройки</button>
+    </div>
+  </header>
+
+  <!-- ГЛАВНЫЙ ЭКРАН -->
+  <div id="main" style="flex:1;min-height:0;display:flex;flex-direction:column">
+    <div id="band"><canvas id="discs"></canvas></div>
+
+    <div id="strip">
+      <div id="delayCell">
+        <div class="caps" id="lblDelay">Задержка</div>
+        <div id="delayValue">120<small>мс</small></div>
+        <div id="delaySlab">
+          <div id="delayFill"></div><div id="delayMarker"></div>
+        </div>
+        <div id="scale"><span>20</span><span>100</span><span>200</span><span>300</span><span>400</span></div>
+        <div id="floorNote"></div>
+      </div>
+
+      <div id="tilesCell">
+        <div class="tilerow">
+          <button class="tile preset" data-v="50">50</button>
+          <button class="tile preset" data-v="75">75</button>
+        </div>
+        <div class="tilerow">
+          <button class="tile preset" data-v="100">100</button>
+          <button class="tile preset" data-v="150">150</button>
+        </div>
+        <div class="tilerow">
+          <button class="tile" id="minus">−10</button>
+          <button class="tile" id="plus">+10</button>
+        </div>
+        <button class="tile" id="longTile">0–4 с</button>
+      </div>
+
+      <div id="rightCell">
+        <div id="startWrap">
+          <button id="startBtn">Пуск</button>
+          <div id="hint"></div>
+        </div>
+
+        <div class="meters">
+          <div class="meter">
+            <div class="meterbar" id="micBar">
+              <div class="meterfill" id="micFill"></div>
+              <div class="meterline" id="micLine"></div>
+              <div class="meterzone" style="bottom:25%"></div>
+            </div>
+            <div class="caps" id="lblMic">Микр</div>
+            <div class="val mono" id="micVal">0 дБ</div>
+          </div>
+          <div class="meter">
+            <div class="meterbar" id="outBar">
+              <div class="meterfill" id="outFill"></div>
+              <div class="meterline" id="outLine"></div>
+              <div class="meterzone" style="bottom:25%"></div>
+            </div>
+            <div class="caps" id="lblOut">Выход</div>
+            <div class="val mono" id="outVal">0 дБ</div>
+          </div>
+        </div>
+
+        <div id="sessionCell">
+          <div class="caps" id="lblSession">Занятие</div>
+          <div id="clock" class="mono">30:00</div>
+          <div id="timerState" class="caps">готов</div>
+          <div id="timerTiles">
+            <button class="tile tmr" data-m="15">15</button>
+            <button class="tile tmr on" data-m="30">30</button>
+            <button class="tile tmr" data-m="40">40</button>
+            <button class="tile tmr" data-m="0">∞</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- НАСТРОЙКИ -->
+  <div id="settings">
+    <div id="setGrid">
+      <div>
+        <div class="caps" id="lblInput">Вход</div>
+        <div class="devlist" id="inputs"></div>
+        <div class="caps" id="lblOutput">Выход</div>
+        <div class="devlist" id="outputs"></div>
+        <div id="devNote" style="font-size:11.5px;font-weight:600;color:var(--muted);line-height:1.5"></div>
+      </div>
+      <div>
+        <div class="caps" id="lblRt">Задержка оборудования</div>
+        <div id="rtValue" class="mono">—<small>мс</small></div>
+        <div id="rtNote"></div>
+        <button class="ghost" id="measureBtn">Измерить</button>
+        <div id="err"></div>
+      </div>
+    </div>
+    <div class="footer">
+      <span class="caps" id="lblLang">Язык</span>
+      <button class="tile" id="langEn" style="width:56px">EN</button>
+      <button class="tile on" id="langRu" style="width:56px">RU</button>
+      <div class="right"><button class="solid" id="doneBtn">Готово</button></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const invoke = (cmd, args) => window.__TAURI__.core.invoke(cmd, args);
+
+// ---------------------------------------------------------------- словарь
+const T = {
+  ru:{status_idle:"ПОКОЙ",status_run:"РАБОТА",status_fault:"НЕТ УСТРОЙСТВА",
+      delay:"Задержка",mic:"Микр",out:"Выход",session:"Занятие",
+      start:"Пуск",stop:"Стоп",settings:"Настройки",done:"Готово",
+      input:"Вход",output:"Выход",rt:"Задержка оборудования",lang:"Язык",
+      measure:"Измерить",ms:"мс",ready:"готов",running:"идёт",paused:"пауза",
+      last:"последняя минута",over:"время вышло",long:"0–4 с",
+      hint_slow:"Тяните гласные, идите вслед за звуком",
+      hint_normal:"Говорите в обычном темпе",
+      devnote:"Вход и выход на одном устройстве дают меньшую задержку.",
+      rtnote:"Проигрывает щелчок в наушники и слушает его микрофоном. Наденьте наушники и поднесите чашку к микрофону.",
+      floor:n=>`Тракт уже даёт ${n} мс. Короче не получится.`,
+      measuring:"Идёт замер, около пяти секунд..."},
+  en:{status_idle:"IDLE",status_run:"ACTIVE",status_fault:"NO DEVICE",
+      delay:"Delay",mic:"Mic",out:"Out",session:"Session",
+      start:"Start",stop:"Stop",settings:"Settings",done:"Done",
+      input:"Input",output:"Output",rt:"Hardware round trip",lang:"Language",
+      measure:"Measure",ms:"ms",ready:"ready",running:"running",paused:"paused",
+      last:"last minute",over:"time is up",long:"0–4 s",
+      hint_slow:"Stretch the vowels, follow the sound",
+      hint_normal:"Speak at your normal pace",
+      devnote:"One device for input and output gives lower latency.",
+      rtnote:"Plays a click into the headphones and listens for it. Keep the headset on and hold a cup to the microphone.",
+      floor:n=>`The path already adds ${n} ms. Shorter is not possible.`,
+      measuring:"Measuring, about five seconds..."}
+};
+
+// ---------------------------------------------------------------- состояние
+const S = {
+  lang:"ru", delay:120, longMode:false, running:false,
+  micDb:0, outDb:-12, floor:0, subtract:false,
+  input:null, output:null, inputs:[], outputs:[],
+  timerMin:30, remain:30*60, timerRunning:false, over:false,
+  level:0, history:[], lastTick:performance.now()
+};
+
+const $ = id => document.getElementById(id);
+const t = k => T[S.lang][k];
+
+// ---------------------------------------------------------------- отрисовка
+function minDelay(){ return S.subtract ? 20 : Math.max(20, Math.round(S.floor)); }
+function maxDelay(){ return S.longMode ? 4000 : 400; }
+
+function paint(){
+  const d = S.delay;
+  $("delayValue").innerHTML = d + '<small>'+t("ms")+'</small>';
+  $("delayValue").style.fontSize = S.longMode ? "128px" : "150px";
+
+  const lo = minDelay(), hi = maxDelay();
+  const frac = Math.max(0, Math.min(1, (d - 20) / (hi - 20)));
+  const slabW = $("delaySlab").clientWidth;
+  $("delayFill").style.width = (frac*slabW) + "px";
+  $("delayMarker").style.left = Math.max(0, frac*slabW - 4) + "px";
+
+  const marks = S.longMode ? [0,1000,2000,3000,4000] : [20,100,200,300,400];
+  $("scale").innerHTML = marks.map(m=>`<span>${m}</span>`).join("");
+
+  $("floorNote").textContent = (S.floor > 20 && !S.subtract) ? t("floor")(Math.round(S.floor)) : "";
+
+  document.querySelectorAll(".preset").forEach(b=>
+    b.classList.toggle("on", +b.dataset.v === d));
+  $("longTile").classList.toggle("on", S.longMode);
+  $("longTile").textContent = t("long");
+
+  $("startBtn").textContent = S.running ? t("stop") : t("start");
+  $("startBtn").classList.toggle("running", S.running);
+  $("hint").textContent = d >= 90 ? t("hint_slow") : t("hint_normal");
+
+  $("status").textContent = S.running ? t("status_run") : t("status_idle");
+  $("route").textContent = (S.input && S.output)
+      ? (short(S.input)+" → "+short(S.output)) : "";
+
+  $("lblDelay").textContent = t("delay");
+  $("lblMic").textContent = t("mic");
+  $("lblOut").textContent = t("out");
+  $("lblSession").textContent = t("session");
+  $("lblInput").textContent = t("input");
+  $("lblOutput").textContent = t("output");
+  $("lblRt").textContent = t("rt");
+  $("lblLang").textContent = t("lang");
+  $("settingsBtn").textContent = t("settings");
+  $("measureBtn").textContent = t("measure");
+  $("doneBtn").textContent = t("done");
+  $("devNote").textContent = t("devnote");
+  if(!$("rtNote").dataset.busy) $("rtNote").textContent = t("rtnote");
+  $("rtValue").innerHTML = (S.floor?S.floor.toFixed(1):"—")+'<small>'+t("ms")+'</small>';
+
+  $("micVal").textContent = S.micDb.toFixed(0)+" "+(S.lang==="ru"?"дБ":"dB");
+  $("outVal").textContent = S.outDb.toFixed(0)+" "+(S.lang==="ru"?"дБ":"dB");
+  $("micLine").style.bottom = ((S.micDb+40)/60*100)+"%";
+  $("outLine").style.bottom = ((S.outDb+40)/60*100)+"%";
+
+  document.querySelectorAll(".tmr").forEach(b=>
+    b.classList.toggle("on", +b.dataset.m === S.timerMin));
+  paintClock();
+}
+
+function short(n){ return n.length>26 ? n.slice(0,24)+"…" : n; }
+
+function paintClock(){
+  if(S.timerMin === 0){
+    const el = Math.floor((Date.now()-(S.startedAt||Date.now()))/1000);
+    $("clock").textContent = fmt(el);
+  } else {
+    $("clock").textContent = fmt(Math.max(0,S.remain));
+  }
+  let st = t("ready");
+  if(S.over) st = t("over");
+  else if(S.timerRunning) st = (S.timerMin>0 && S.remain<60) ? t("last") : t("running");
+  else if(S.remain < S.timerMin*60) st = t("paused");
+  $("timerState").textContent = st;
+}
+function fmt(s){
+  const m = Math.floor(s/60), r = s%60;
+  return String(m).padStart(2,"0")+":"+String(r).padStart(2,"0");
+}
+
+// ---------------------------------------------------------------- диски
+const cv = $("discs"), ctx = cv.getContext("2d");
+function resize(){
+  const r = $("band").getBoundingClientRect();
+  cv.width = r.width * devicePixelRatio;
+  cv.height = r.height * devicePixelRatio;
+  cv.style.width = r.width+"px"; cv.style.height = r.height+"px";
+  ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+}
+addEventListener("resize", ()=>{resize();paint();});
+
+function drawDisc(cx,cy,rad,level,seed){
+  const pitch = 9;
+  ctx.fillStyle = "#0A0A0A";
+  for(let y=-rad;y<=rad;y+=pitch){
+    for(let x=-rad;x<=rad;x+=pitch){
+      const dist = Math.hypot(x,y);
+      if(dist>rad) continue;
+      const n = Math.sin((x*0.11+seed)*1.7)+Math.cos((y*0.13-seed)*1.3);
+      const push = level * 7 * n;
+      const s = 1.6 + level*2.2*Math.abs(n);
+      ctx.beginPath();
+      ctx.arc(cx+x+push*0.6, cy+y+push*0.4, Math.max(.4,s/2), 0, 6.283);
+      ctx.fill();
+    }
+  }
+}
+
+function drawBand(){
+  const w = cv.clientWidth, h = cv.clientHeight;
+  ctx.clearRect(0,0,w,h);
+  if(w<10||h<10) return;
+
+  const rad = Math.min(118, h*0.34);
+  const frac = Math.min(1,(S.delay-20)/(maxDelay()-20));
+  const maxGap = w - 2*(2*rad) - 120;
+  const gap = 8 + frac * Math.max(20,maxGap);
+  const cy = h/2 - 6;
+  const left = w/2 - gap/2 - rad, right = w/2 + gap/2 + rad;
+
+  const seed = performance.now()/220;
+  const delayed = levelAgo(S.delay);
+  drawDisc(left, cy, rad, S.running?S.level:0, seed);
+  drawDisc(right, cy, rad, S.running?delayed:0, seed-S.delay/300);
+
+  // подписи
+  ctx.fillStyle = "rgba(10,10,10,.45)";
+  ctx.font = "600 10px 'Segoe UI',Arial";
+  ctx.textAlign = "center";
+  ctx.letterSpacing = "1.6px";
+  ctx.fillText(S.lang==="ru"?"ГОЛОС":"VOICE", left, cy-rad-22);
+  ctx.fillText(S.lang==="ru"?"ВОЗВРАТ":"RETURN", right, cy-rad-22);
+
+  // размерная линия — это и есть задержка
+  const x1 = left+rad+6, x2 = right-rad-6;
+  ctx.strokeStyle = "#0B3BE8"; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(x1,cy-9); ctx.lineTo(x1,cy+9);
+  ctx.moveTo(x2,cy-9); ctx.lineTo(x2,cy+9);
+  ctx.moveTo(x1,cy); ctx.lineTo(x2,cy);
+  ctx.stroke();
+  const label = S.delay+" "+t("ms");
+  ctx.font = "700 12px 'Segoe UI',Arial";
+  const tw = ctx.measureText(label).width + 12;
+  const mid = (x1+x2)/2;
+  const above = (x2-x1) < tw+16;
+  ctx.fillStyle = "#E9E5DA";
+  ctx.fillRect(mid-tw/2, above?cy-30:cy-9, tw, 18);
+  ctx.fillStyle = "#0B3BE8";
+  ctx.fillText(label, mid, above?cy-17:cy+4);
+}
+
+function levelAgo(ms){
+  const now = performance.now();
+  for(let i=S.history.length-1;i>=0;i--){
+    if(now - S.history[i].t >= ms) return S.history[i].v;
+  }
+  return 0;
+}
+
+function frame(){
+  drawBand();
+  requestAnimationFrame(frame);
+}
+
+// ---------------------------------------------------------------- опрос ядра
+async function poll(){
+  try{
+    const m = await invoke("meters");
+    S.level = Math.min(1, m.peak_in*1.6);
+    S.history.push({t:performance.now(), v:S.level});
+    while(S.history.length>400) S.history.shift();
+
+    $("micFill").style.height = (Math.min(1,m.peak_in)*100)+"%";
+    $("outFill").style.height = (Math.min(1,m.peak_out)*100)+"%";
+    $("micFill").classList.toggle("clip", m.clipping);
+    $("hdr").classList.toggle("fault", m.clipping);
+  }catch(e){}
+  setTimeout(poll, 40);
+}
+
+// ---------------------------------------------------------------- таймер
+setInterval(()=>{
+  if(S.timerRunning && S.running){
+    if(S.timerMin>0){
+      S.remain--;
+      if(S.remain<=0){ S.remain=0; S.over=true; S.timerRunning=false; }
+    }
+  }
+  paintClock();
+},1000);
+
+// ---------------------------------------------------------------- события
+$("startBtn").onclick = async ()=>{
+  if(S.running){
+    await invoke("stop");
+    S.running=false; S.timerRunning=false;
+  } else {
+    if(!S.input||!S.output){ openSettings(); return; }
+    try{
+      await invoke("start",{input:S.input,output:S.output,delayMs:S.delay});
+      await invoke("set_gains",{micDb:S.micDb,outDb:S.outDb});
+      S.running=true; S.over=false;
+      if(!S.timerRunning && S.remain>0){ S.timerRunning=true; S.startedAt=Date.now(); }
+    }catch(e){
+      $("status").textContent = t("status_fault");
+      alert(e);
+    }
+  }
+  paint(); save();
+};
+
+function setDelay(v){
+  S.delay = Math.max(minDelay(), Math.min(maxDelay(), Math.round(v)));
+  invoke("set_delay",{delayMs:S.delay}).catch(()=>{});
+  paint(); save();
+}
+document.querySelectorAll(".preset").forEach(b=> b.onclick=()=>setDelay(+b.dataset.v));
+$("minus").onclick = ()=>setDelay(S.delay-10);
+$("plus").onclick  = ()=>setDelay(S.delay+10);
+$("longTile").onclick = ()=>{ S.longMode=!S.longMode; if(!S.longMode&&S.delay>400) setDelay(400); paint(); save(); };
+
+let dragging=false;
+function slabToDelay(e){
+  const r = $("delaySlab").getBoundingClientRect();
+  const f = Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));
+  setDelay(20 + f*(maxDelay()-20));
+}
+$("delaySlab").addEventListener("mousedown",e=>{dragging=true;slabToDelay(e);});
+addEventListener("mousemove",e=>{ if(dragging) slabToDelay(e); });
+addEventListener("mouseup",()=>dragging=false);
+
+function meterDrag(barId, key){
+  let on=false;
+  const apply=e=>{
+    const r=$(barId).getBoundingClientRect();
+    const f=Math.max(0,Math.min(1,1-(e.clientY-r.top)/r.height));
+    S[key] = Math.round(f*60-40);
+    invoke("set_gains",{micDb:S.micDb,outDb:S.outDb}).catch(()=>{});
+    paint(); save();
+  };
+  $(barId).addEventListener("mousedown",e=>{on=true;apply(e);});
+  addEventListener("mousemove",e=>{if(on)apply(e);});
+  addEventListener("mouseup",()=>on=false);
+}
+meterDrag("micBar","micDb");
+meterDrag("outBar","outDb");
+
+document.querySelectorAll(".tmr").forEach(b=> b.onclick=()=>{
+  S.timerMin=+b.dataset.m; S.remain=S.timerMin*60; S.over=false;
+  S.timerRunning=S.running; S.startedAt=Date.now();
+  paint(); save();
+});
+
+// ---------------------------------------------------------------- настройки
+function openSettings(){
+  $("main").style.display="none";
+  $("settings").classList.add("show");
+  $("status").textContent = t("settings").toUpperCase();
+}
+$("settingsBtn").onclick = openSettings;
+$("doneBtn").onclick = ()=>{
+  $("settings").classList.remove("show");
+  $("main").style.display="flex";
+  resize(); paint(); save();
+};
+
+function renderDevices(){
+  const mk=(list,sel,box,key)=>{
+    $(box).innerHTML = list.map((d,i)=>
+      `<div class="dev ${d.name===sel?'sel':''}" data-i="${i}">
+         <span class="box"></span><span>${d.name}</span>
+         <span class="rate mono">${d.rate?(d.rate/1000).toFixed(1)+" kHz":""}</span>
+       </div>`).join("");
+    $(box).querySelectorAll(".dev").forEach(el=> el.onclick=()=>{
+      S[key]=list[+el.dataset.i].name; renderDevices(); paint(); save();
+    });
+  };
+  mk(S.inputs,S.input,"inputs","input");
+  mk(S.outputs,S.output,"outputs","output");
+}
+
+$("measureBtn").onclick = async ()=>{
+  if(!S.input||!S.output) return;
+  $("rtNote").dataset.busy="1";
+  $("rtNote").textContent = t("measuring");
+  $("err").textContent="";
+  try{
+    const ms = await invoke("measure",{input:S.input,output:S.output});
+    S.floor = ms;
+    if(S.delay < minDelay()) S.delay = minDelay();
+  }catch(e){ $("err").textContent = String(e); }
+  delete $("rtNote").dataset.busy;
+  paint(); save();
+};
+
+$("langRu").onclick = ()=>{ S.lang="ru"; $("langRu").classList.add("on"); $("langEn").classList.remove("on"); document.documentElement.lang="ru"; paint(); save(); };
+$("langEn").onclick = ()=>{ S.lang="en"; $("langEn").classList.add("on"); $("langRu").classList.remove("on"); document.documentElement.lang="en"; paint(); save(); };
+
+// ---------------------------------------------------------------- сохранение
+let saveTimer=null;
+function save(){
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{
+    const d={lang:S.lang,delay:S.delay,micDb:S.micDb,outDb:S.outDb,
+             floor:S.floor,input:S.input,output:S.output,timerMin:S.timerMin};
+    invoke("save_settings",{json:JSON.stringify(d)}).catch(()=>{});
+  },400);
+}
+
+async function boot(){
+  resize();
+  try{
+    const raw = await invoke("load_settings");
+    const d = JSON.parse(raw||"{}");
+    Object.assign(S,{
+      lang:d.lang||"ru", delay:d.delay||120, micDb:d.micDb??0, outDb:d.outDb??-12,
+      floor:d.floor||0, input:d.input||null, output:d.output||null,
+      timerMin:d.timerMin??30
+    });
+    S.remain = S.timerMin*60;
+  }catch(e){}
+
+  try{
+    const lists = await invoke("list_devices");
+    S.inputs=lists.inputs; S.outputs=lists.outputs;
+    if(!S.input && S.inputs[0]) S.input=S.inputs[0].name;
+    if(!S.output && S.outputs[0]) S.output=S.outputs[0].name;
+  }catch(e){}
+
+  if(S.lang==="en"){ $("langEn").classList.add("on"); $("langRu").classList.remove("on"); }
+  renderDevices(); paint(); poll(); frame();
+}
+boot();
+</script>
+</body>
+</html>

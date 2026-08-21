@@ -1,0 +1,6 @@
+{
+  "identifier": "default",
+  "description": "Доступ окна к командам приложения",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}
