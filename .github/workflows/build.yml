@@ -1,0 +1,20 @@
+name: build
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Upload exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: daf-trainer
+          path: target/release/daf-trainer.exe
