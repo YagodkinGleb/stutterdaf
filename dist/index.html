@@ -42,14 +42,14 @@ header .right{margin-left:auto;display:flex;align-items:center;gap:16px}
 #discs{width:100%;height:100%;display:block}
 
 /* нижняя панель: четыре колонки, чтобы таймер всегда был на виду */
-#strip{flex:none;height:214px;display:grid;
-  grid-template-columns:330px 138px 226px 1fr;padding-bottom:18px}
+#strip{flex:none;height:244px;display:grid;
+  grid-template-columns:330px 138px 226px 1fr;padding-bottom:22px}
 #strip>div{padding:14px 18px}
 #delayCell,#tilesCell,#playCell{border-right:1px solid var(--hair)}
 
-#delayValue{font-size:132px;line-height:.82;letter-spacing:-.05em;display:flex;align-items:baseline}
+#delayValue{font-size:118px;line-height:.82;letter-spacing:-.05em;display:flex;align-items:baseline}
 #delayValue small{font-size:18px;letter-spacing:0;margin-left:5px}
-#delaySlab{height:34px;background:var(--slab);margin-top:12px;position:relative;cursor:pointer}
+#delaySlab{height:32px;background:var(--slab);margin-top:11px;position:relative;cursor:pointer}
 #delayFill{position:absolute;left:0;top:0;bottom:0;background:var(--blue)}
 #delayMarker{position:absolute;top:0;bottom:0;width:8px;background:var(--ink)}
 #scale{display:flex;justify-content:space-between;margin-top:4px;font-size:9.5px}
@@ -236,7 +236,7 @@ const T = {
       hint_normal:"Говорите в обычном темпе",
       devnote:"Вход и выход на одном устройстве дают меньшую задержку.",
       rtnote:"Проигрывает щелчок в наушники и слушает его микрофоном. Наденьте наушники и поднесите чашку к микрофону.",
-      floor:n=>`Тракт уже даёт ${n} мс. Короче не получится.`,
+      floor:n=>`Тракт уже даёт ${n} мс — короче не выйдет`,
       measuring:"Идёт замер, около пяти секунд..."},
   en:{status_idle:"IDLE",status_run:"ACTIVE",status_fault:"NO DEVICE",
       delay:"Delay",mic:"Mic",out:"Out",session:"Session",
@@ -249,7 +249,7 @@ const T = {
       hint_normal:"Speak at your normal pace",
       devnote:"One device for input and output gives lower latency.",
       rtnote:"Plays a click into the headphones and listens for it. Keep the headset on and hold a cup to the microphone.",
-      floor:n=>`The path already adds ${n} ms. Shorter is not possible.`,
+      floor:n=>`The path already adds ${n} ms — no shorter`,
       measuring:"Measuring, about five seconds..."}
 };
 
@@ -270,7 +270,7 @@ function maxDelay(){ return S.longMode ? 4000 : 400; }
 function paint(){
   const d = S.delay;
   $("delayValue").innerHTML = d + '<small>'+t("ms")+'</small>';
-  $("delayValue").style.fontSize = S.longMode ? "112px" : "132px";
+  $("delayValue").style.fontSize = S.longMode ? "100px" : "118px";
 
   const hi = maxDelay();
   const frac = Math.max(0, Math.min(1, (d-20)/(hi-20)));
@@ -332,7 +332,7 @@ function resize(){
   ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
 }
 
-const PITCH=5;              // втрое больше точек, чем было
+const PITCH=3.5;            // вдвое плотнее предыдущей версии
 function drawDisc(cx,cy,rad,lvl,phase){
   ctx.fillStyle="#0A0A0A";
   const amp = lvl*rad*0.30;              // размах смещения
@@ -349,8 +349,9 @@ function drawDisc(cx,cy,rad,lvl,phase){
       const push = amp*wave*0.42*edge;
       const px = cx + x + Math.cos(ang)*push;
       const py = cy + y + Math.sin(ang)*push;
-      const r = 1.05 + lvl*1.5*Math.abs(wave)*edge;
-      ctx.beginPath(); ctx.arc(px,py,r,0,6.283); ctx.fill();
+      // на таком размере квадрат неотличим от круга, но рисуется в разы быстрее
+      const r = 0.78 + lvl*1.15*Math.abs(wave)*edge;
+      ctx.fillRect(px-r, py-r, r*2, r*2);
     }
   }
 }
