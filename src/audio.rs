@@ -32,6 +32,42 @@ pub struct Shared {
     pub clipping: AtomicBool,
     pub running: AtomicBool,
     pub underruns: AtomicU32,
+    /// Энергия по восьми полосам, биты f32. Нужна визуализации:
+    /// низкие частоты дают крупные лепестки, высокие дробят рисунок.
+    pub bands: [AtomicU32; NBANDS],
+}
+
+pub const NBANDS: usize = 8;
+/// Центры полос в герцах: от основного тона голоса до шипящих.
+pub const BAND_HZ: [f32; NBANDS] = [110.0, 220.0, 420.0, 800.0, 1500.0, 2600.0, 4200.0, 6800.0];
+
+/// Полосовой фильтр Чемберлина. Дёшев настолько, что восемь штук
+/// на семпл не заметны на фоне остальной работы колбэка.
+#[derive(Clone, Copy)]
+struct Svf {
+    f: f32,
+    q: f32,
+    low: f32,
+    band: f32,
+}
+
+impl Svf {
+    fn new(hz: f32) -> Svf {
+        let f = 2.0 * (std::f32::consts::PI * hz / SAMPLE_RATE as f32).sin();
+        Svf {
+            f: f.min(0.9),
+            q: 0.30,
+            low: 0.0,
+            band: 0.0,
+        }
+    }
+    #[inline]
+    fn run(&mut self, x: f32) -> f32 {
+        self.low += self.f * self.band;
+        let high = x - self.low - self.q * self.band;
+        self.band += self.f * high;
+        self.band
+    }
 }
 
 impl Shared {
@@ -45,6 +81,7 @@ impl Shared {
             clipping: AtomicBool::new(false),
             running: AtomicBool::new(false),
             underruns: AtomicU32::new(0),
+            bands: Default::default(),
         }
     }
 }
@@ -285,6 +322,10 @@ fn build_daf(
     let (mut prod, mut cons) = rb.split();
 
     let in_shared = shared.clone();
+    // Состояние фильтров живёт между вызовами колбэка.
+    let mut filters: [Svf; NBANDS] = std::array::from_fn(|i| Svf::new(BAND_HZ[i]));
+    let mut band_env = [0.0f32; NBANDS];
+
     let in_stream = input
         .build_input_stream(
             &in_cfg,
@@ -292,6 +333,7 @@ fn build_daf(
                 let gain = db_to_lin(in_shared.mic_gain.load(Ordering::Relaxed));
                 let mut peak = 0.0f32;
                 let mut clipped = false;
+                let mut band_peak = [0.0f32; NBANDS];
 
                 for frame in data.chunks(in_ch as usize) {
                     let mut mono = frame.iter().sum::<f32>() / in_ch as f32;
@@ -301,7 +343,25 @@ fn build_daf(
                     }
                     let mono = mono.clamp(-1.0, 1.0);
                     peak = peak.max(mono.abs());
+
+                    for i in 0..NBANDS {
+                        let v = filters[i].run(mono).abs();
+                        if v > band_peak[i] {
+                            band_peak[i] = v;
+                        }
+                    }
+
                     let _ = prod.push(mono);
+                }
+
+                // Сглаживание: резкий подъём, мягкий спад — иначе картинка дрожит.
+                for i in 0..NBANDS {
+                    // высокие полосы тише по природе речи, поднимаем их наклоном
+                    let tilt = 1.0 + i as f32 * 0.45;
+                    let target = (band_peak[i] * tilt).min(1.0);
+                    let k = if target > band_env[i] { 0.6 } else { 0.08 };
+                    band_env[i] += k * (target - band_env[i]);
+                    in_shared.bands[i].store(band_env[i].to_bits(), Ordering::Relaxed);
                 }
 
                 in_shared.peak_in.store(peak.to_bits(), Ordering::Relaxed);
