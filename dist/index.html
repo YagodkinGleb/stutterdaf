@@ -106,7 +106,18 @@ header .right{margin-left:auto;display:flex;align-items:center;gap:16px}
 #err{color:var(--blue);font-size:11.5px;font-weight:600;margin-top:10px;min-height:15px;line-height:1.4}
 .footer{flex:none;border-top:1px solid var(--hair);padding:12px 20px 18px;
   display:flex;align-items:center;gap:12px}
-.footer .right{margin-left:auto}
+.footer .right{margin-left:auto;display:flex;gap:10px}
+#subWrap{display:flex;align-items:center;gap:9px;margin-left:16px;cursor:pointer;
+  font-size:12px;font-weight:600}
+.cbox{width:14px;height:14px;border:2px solid var(--ink);flex:none}
+.cbox.on{background:var(--ink)}
+#breakdown{margin-top:12px}
+.brow{display:flex;align-items:center;gap:10px;margin-bottom:5px;font-size:11px;font-weight:600}
+.brow .nm{width:112px;color:var(--muted)}
+.brow .bar{flex:1;height:7px;background:var(--slab);position:relative}
+.brow .bar i{position:absolute;left:0;top:0;bottom:0;background:var(--ink);display:block}
+.brow .bar i.acc{background:var(--blue)}
+.brow .num{width:44px;text-align:right}
 .solid{background:var(--ink);color:var(--paper);border:2px solid var(--ink);border-radius:0;
   font:inherit;font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:9px 18px;cursor:pointer}
 </style>
@@ -120,6 +131,7 @@ header .right{margin-left:auto;display:flex;align-items:center;gap:16px}
     <div class="right">
       <span id="route"></span>
       <button class="ghost" id="settingsBtn">Настройки</button>
+      <button class="ghost" id="backBtn" style="display:none">← Главное</button>
     </div>
   </header>
 
@@ -206,6 +218,7 @@ header .right{margin-left:auto;display:flex;align-items:center;gap:16px}
       <div>
         <div class="caps" id="lblRt">Задержка оборудования</div>
         <div id="rtValue" class="mono">—<small>мс</small></div>
+        <div id="breakdown"></div>
         <div id="rtNote"></div>
         <button class="ghost" id="measureBtn">Измерить</button>
         <div id="err"></div>
@@ -215,7 +228,11 @@ header .right{margin-left:auto;display:flex;align-items:center;gap:16px}
       <span class="caps" id="lblLang">Язык</span>
       <button class="tile" id="langEn" style="width:56px">EN</button>
       <button class="tile on" id="langRu" style="width:56px">RU</button>
-      <div class="right"><button class="solid" id="doneBtn">Готово</button></div>
+      <label id="subWrap"><span class="cbox" id="subBox"></span><span id="subLbl">Вычитать из заданной задержки</span></label>
+      <div class="right">
+        <button class="ghost" id="resetBtn">По умолчанию</button>
+        <button class="solid" id="doneBtn">Готово</button>
+      </div>
     </div>
   </div>
 
@@ -230,6 +247,8 @@ const T = {
       start:"Пуск",stop:"Стоп",settings:"Настройки",done:"Готово",
       input:"Вход",output:"Выход",rt:"Задержка оборудования",lang:"Язык",
       measure:"Измерить",ms:"мс",db:"дБ",ready:"готов",running:"идёт",paused:"пауза",
+      back:"← Главное",reset:"По умолчанию",subtract:"Вычитать из заданной задержки",
+      b_set:"Задано",b_path:"Тракт",b_total:"Итого в ушах",
       last:"последняя минута",over:"время вышло",long:"0–4 с",
       voice:"ГОЛОС",ret:"ВОЗВРАТ",
       hint_slow:"Тяните гласные, идите вслед за звуком",
@@ -243,6 +262,8 @@ const T = {
       start:"Start",stop:"Stop",settings:"Settings",done:"Done",
       input:"Input",output:"Output",rt:"Hardware round trip",lang:"Language",
       measure:"Measure",ms:"ms",db:"dB",ready:"ready",running:"running",paused:"paused",
+      back:"← Main",reset:"Defaults",subtract:"Subtract from the delay you set",
+      b_set:"Set",b_path:"Path",b_total:"In your ears",
       last:"last minute",over:"time is up",long:"0–4 s",
       voice:"VOICE",ret:"RETURN",
       hint_slow:"Stretch the vowels, follow the sound",
@@ -255,7 +276,7 @@ const T = {
 
 const S = {
   lang:"ru", delay:120, longMode:false, running:false,
-  micDb:0, outDb:-12, floor:0,
+  micDb:0, outDb:-12, floor:0, subtract:false,
   input:null, output:null, inputs:[], outputs:[],
   timerMin:30, remain:30*60, timerRunning:false, over:false, elapsed:0,
   raw:0, level:0, bands:new Array(8).fill(0), history:[], peakIn:0, peakOut:0, clip:false
@@ -264,7 +285,12 @@ const S = {
 const $ = id => document.getElementById(id);
 const t = k => T[S.lang][k];
 
-function minDelay(){ return Math.max(20, Math.round(S.floor)); }
+// Без вычитания ползунок задаёт программную задержку, тракт добавляется сверху.
+// С вычитанием ползунок задаёт то, что реально слышно, а программа отнимает тракт.
+function minDelay(){ return S.subtract ? Math.max(20,Math.ceil(S.floor)) : 20; }
+function softDelay(){ return S.subtract ? Math.max(0, Math.round(S.delay-S.floor)) : S.delay; }
+function totalDelay(){ return S.subtract ? S.delay : Math.round(S.delay+S.floor); }
+function pushDelay(){ invoke("set_delay",{delayMs:softDelay()}).catch(()=>{}); }
 function maxDelay(){ return S.longMode ? 4000 : 400; }
 
 function paint(){
@@ -280,7 +306,8 @@ function paint(){
 
   const marks = S.longMode ? [0,1000,2000,3000,4000] : [20,100,200,300,400];
   $("scale").innerHTML = marks.map(m=>`<span>${m}</span>`).join("");
-  $("floorNote").textContent = S.floor>20 ? t("floor")(Math.round(S.floor)) : "";
+  $("floorNote").textContent = (S.floor>1 && !S.subtract)
+      ? t("floor")(Math.round(S.floor)) : "";
 
   document.querySelectorAll(".preset").forEach(b=>b.classList.toggle("on", +b.dataset.v===d));
   $("longTile").classList.toggle("on", S.longMode);
@@ -300,6 +327,10 @@ function paint(){
   $("doneBtn").textContent=t("done");   $("devNote").textContent=t("devnote");
   if(!$("rtNote").dataset.busy) $("rtNote").textContent = t("rtnote");
   $("rtValue").innerHTML = (S.floor?S.floor.toFixed(1):"—")+'<small>'+t("ms")+'</small>';
+  $("backBtn").textContent=t("back"); $("resetBtn").textContent=t("reset");
+  $("subLbl").textContent=t("subtract");
+  $("subBox").classList.toggle("on",S.subtract);
+  paintBreakdown();
 
   $("micVal").textContent = S.micDb.toFixed(0)+" "+t("db");
   $("outVal").textContent = S.outDb.toFixed(0)+" "+t("db");
@@ -310,6 +341,18 @@ function paint(){
   paintClock();
 }
 function short(n){ return n.length>22 ? n.slice(0,20)+"…" : n; }
+
+// Честная разбивка: только то, что мы правда знаем —
+// заданная программная задержка и измеренный тракт.
+function paintBreakdown(){
+  const soft=softDelay(), path=Math.round(S.floor), total=totalDelay();
+  const scale=Math.max(total,1);
+  const row=(nm,v,acc)=>`<div class="brow"><span class="nm">${nm}</span>
+    <span class="bar"><i class="${acc?'acc':''}" style="width:${Math.min(100,v/scale*100)}%"></i></span>
+    <span class="num mono">${v}</span></div>`;
+  $("breakdown").innerHTML =
+      row(t("b_set"),soft,false)+row(t("b_path"),path,false)+row(t("b_total"),total,true);
+}
 
 function paintClock(){
   $("clock").textContent = S.timerMin===0 ? fmt(S.elapsed) : fmt(Math.max(0,S.remain));
@@ -585,7 +628,7 @@ $("startBtn").onclick=async()=>{
   }else{
     if(!S.input||!S.output){openSettings();return;}
     try{
-      await invoke("start",{input:S.input,output:S.output,delayMs:S.delay});
+      await invoke("start",{input:S.input,output:S.output,delayMs:softDelay()});
       await invoke("set_gains",{micDb:S.micDb,outDb:S.outDb});
       S.running=true; S.over=false;
       if(!S.timerRunning) S.timerRunning=true;
@@ -596,7 +639,7 @@ $("startBtn").onclick=async()=>{
 
 function setDelay(v){
   S.delay=Math.max(minDelay(),Math.min(maxDelay(),Math.round(v)));
-  invoke("set_delay",{delayMs:S.delay}).catch(()=>{});
+  pushDelay();
   paint(); save();
 }
 document.querySelectorAll(".preset").forEach(b=>b.onclick=()=>setDelay(+b.dataset.v));
@@ -639,12 +682,29 @@ function openSettings(){
   $("main").style.display="none";
   $("settings").classList.add("show");
   $("status").textContent=t("settings").toUpperCase();
+  $("settingsBtn").style.display="none";
+  $("backBtn").style.display="";
 }
 $("settingsBtn").onclick=openSettings;
+$("backBtn").onclick=()=>$("doneBtn").click();
 $("doneBtn").onclick=()=>{
   $("settings").classList.remove("show");
   $("main").style.display="flex";
+  $("settingsBtn").style.display="";
+  $("backBtn").style.display="none";
   resize(); paint(); save();
+};
+
+$("subWrap").onclick=()=>{
+  S.subtract=!S.subtract;
+  if(S.delay<minDelay()) S.delay=minDelay();
+  pushDelay(); paint(); save();
+};
+
+$("resetBtn").onclick=()=>{
+  Object.assign(S,{delay:120,micDb:0,outDb:-12,timerMin:30,longMode:false,subtract:false});
+  S.remain=S.timerMin*60; S.elapsed=0; S.over=false;
+  pushDelay(); paint(); save();
 };
 
 function renderDevices(){
@@ -685,7 +745,7 @@ function save(){
   saveTimer=setTimeout(()=>{
     invoke("save_settings",{json:JSON.stringify({
       lang:S.lang,delay:S.delay,micDb:S.micDb,outDb:S.outDb,
-      floor:S.floor,input:S.input,output:S.output,timerMin:S.timerMin
+      floor:S.floor,input:S.input,output:S.output,timerMin:S.timerMin,subtract:S.subtract
     })}).catch(()=>{});
   },400);
 }
@@ -696,7 +756,8 @@ async function boot(){
     const d=JSON.parse(await invoke("load_settings")||"{}");
     Object.assign(S,{
       lang:d.lang||"ru",delay:d.delay||120,micDb:d.micDb??0,outDb:d.outDb??-12,
-      floor:d.floor||0,input:d.input||null,output:d.output||null,timerMin:d.timerMin??30
+      floor:d.floor||0,input:d.input||null,output:d.output||null,timerMin:d.timerMin??30,
+      subtract:d.subtract??false
     });
     S.remain=S.timerMin*60;
   }catch(e){}
