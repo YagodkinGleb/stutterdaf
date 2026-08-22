@@ -13,10 +13,10 @@
         "label": "main",
         "title": "DAF Trainer",
         "width": 900,
-        "height": 560,
-        "minWidth": 720,
-        "minHeight": 520,
-        "resizable": true
+        "height": 600,
+        "resizable": false,
+        "maximizable": false,
+        "fullscreen": false
       }
     ],
     "security": {
