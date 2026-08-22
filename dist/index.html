@@ -332,49 +332,159 @@ function resize(){
   ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
 }
 
-const PITCH=3.5;            // вдвое плотнее предыдущей версии
-const NB=8;
+/* ================= фигуры Хладни =================
+   Песок собирается там, где пластина НЕ колеблется — в узлах.
+   Поэтому частицы идут вниз по градиенту |U|, а не расталкиваются.
+   Форма моды круглой пластины: U = J_n(z_nm * r/R) * cos(n*θ),
+   где z_nm — m-й ноль функции Бесселя порядка n. Номер моды растёт
+   с частотой: бас даёт пару крупных лепестков, шипящие — мелкую сетку.
+*/
+const NB=8, G=64, NPART=4600;
 
-// Каждая полоса рисует свою фигуру: номер моды растёт с частотой,
-// поэтому бас даёт пару крупных лепестков, а шипящие — мелкую рябь.
-// Радиальная мода — кольца от центра, угловая — лепестки по кругу.
-const RMODE=[1.0,1.7,2.6,3.8,5.4,7.4,9.8,12.6];
-const AMODE=[2,3,4,5,7,9,11,14];
-
-function drawDisc(cx,cy,rad,bands,lvl,phase){
-  ctx.fillStyle="#0A0A0A";
-  const amp = lvl*rad*0.26;
-  let sum=0; for(let k=0;k<NB;k++) sum+=bands[k];
-  const norm = sum>0.001 ? 1/sum : 0;
-
-  for(let y=-rad;y<=rad;y+=PITCH){
-    for(let x=-rad;x<=rad;x+=PITCH){
-      const dist=Math.hypot(x,y);
-      if(dist>rad) continue;
-      const ang=Math.atan2(y,x);
-      const u=dist/rad;
-
-      let wave=0;
-      for(let k=0;k<NB;k++){
-        const b=bands[k];
-        if(b<0.004) continue;
-        wave += b*(
-            Math.sin(u*Math.PI*RMODE[k]*1.9 - phase*(1.1+k*0.13))
-          * Math.cos(ang*AMODE[k] + phase*0.35*(k%2?1:-1))
-        );
+// Функция Бесселя через интегральное представление — устойчиво для любых n.
+function besselJ(n,x){
+  const N=64, dt=Math.PI/N; let s=0;
+  for(let i=0;i<N;i++){ const tau=(i+0.5)*dt; s+=Math.cos(n*tau - x*Math.sin(tau)); }
+  return s*dt/Math.PI;
+}
+// m-й положительный ноль: грубый скан со сменой знака, затем бисекция.
+function besselZero(n,m){
+  let found=0, x=0.05, prev=besselJ(n,x);
+  while(x<70){
+    const nx=x+0.05, cur=besselJ(n,nx);
+    if(prev*cur<0){
+      found++;
+      if(found===m){
+        let lo=x, hi=nx;
+        for(let i=0;i<40;i++){
+          const mid=(lo+hi)/2;
+          if(besselJ(n,lo)*besselJ(n,mid)<=0) hi=mid; else lo=mid;
+        }
+        return (lo+hi)/2;
       }
-      wave *= norm;
-
-      const edge = 1-u*u*0.5;
-      const push = amp*wave*edge;
-      const px = cx + x + Math.cos(ang)*push;
-      const py = cy + y + Math.sin(ang)*push;
-      // на таком размере квадрат неотличим от круга, но рисуется в разы быстрее
-      const r = 0.78 + lvl*1.25*Math.abs(wave)*edge;
-      ctx.fillRect(px-r, py-r, r*2, r*2);
     }
+    prev=cur; x=nx;
+  }
+  return 10;
+}
+
+// Восемь мод по возрастанию сложности — по одной на полосу частот.
+// Пара чисел: узловые диаметры n, узловые окружности m.
+const MODES=[[0,1],[1,1],[2,1],[3,1],[1,2],[4,1],[2,2],[5,2]];
+const FIELDS=[];   // готовые поля смещения на сетке G×G
+const INSIDE=new Uint8Array(G*G);
+
+function buildFields(){
+  for(let k=0;k<NB;k++){
+    const [n,m]=MODES[k], z=besselZero(n,m);
+    const f=new Float32Array(G*G);
+    for(let j=0;j<G;j++){
+      const y=-1+2*j/(G-1);
+      for(let i=0;i<G;i++){
+        const x=-1+2*i/(G-1);
+        const r=Math.hypot(x,y), id=j*G+i;
+        if(r>1){ f[id]=0; continue; }
+        INSIDE[id]=1;
+        f[id]=besselJ(n, z*r)*Math.cos(n*Math.atan2(y,x));
+      }
+    }
+    FIELDS.push(f);
   }
 }
+
+// Один диск: своя сетка поля, свой градиент, свои частицы.
+function Disc(){
+  this.U=new Float32Array(G*G);
+  this.A=new Float32Array(G*G);
+  this.GX=new Float32Array(G*G);
+  this.GY=new Float32Array(G*G);
+  this.p=new Float32Array(NPART*2);
+  this.home=new Float32Array(NPART*2);
+  // стартовая раскладка — равномерно по диску
+  for(let i=0;i<NPART;i++){
+    const r=Math.sqrt(Math.random()), a=Math.random()*6.283;
+    const x=r*Math.cos(a), y=r*Math.sin(a);
+    this.p[i*2]=x; this.p[i*2+1]=y;
+    this.home[i*2]=x; this.home[i*2+1]=y;
+  }
+}
+
+Disc.prototype.step=function(bands,level){
+  const U=this.U, A=this.A, GX=this.GX, GY=this.GY;
+
+  // складываем моды с весами полос
+  let sum=0; for(let k=0;k<NB;k++) sum+=bands[k];
+  if(sum<0.002){ U.fill(0); A.fill(0); }
+  else{
+    const inv=1/sum;
+    U.fill(0);
+    for(let k=0;k<NB;k++){
+      const w=bands[k]*inv;
+      if(w<0.01) continue;
+      const f=FIELDS[k];
+      for(let i=0;i<U.length;i++) U[i]+=w*f[i];
+    }
+    for(let i=0;i<U.length;i++) A[i]=Math.abs(U[i]);
+  }
+
+  // градиент модуля смещения
+  for(let j=1;j<G-1;j++){
+    for(let i=1;i<G-1;i++){
+      const id=j*G+i;
+      GX[id]=A[id+1]-A[id-1];
+      GY[id]=A[id+G]-A[id-G];
+    }
+  }
+
+  const agit=Math.min(1,level);          // насколько сильно трясёт
+  const settle=0.075*agit;               // шаг сползания к узлу
+  const jitter=0.010*agit;               // чтобы не застревали
+  const back=0.020*(1-agit);             // в тишине возвращаемся к россыпи
+
+  for(let i=0;i<NPART;i++){
+    let x=this.p[i*2], y=this.p[i*2+1];
+
+    const gi=Math.min(G-2,Math.max(1,Math.round((x+1)/2*(G-1))));
+    const gj=Math.min(G-2,Math.max(1,Math.round((y+1)/2*(G-1))));
+    const id=gj*G+gi;
+
+    let gx=GX[id], gy=GY[id];
+    const gl=Math.hypot(gx,gy);
+    if(gl>1e-6){
+      const amp=Math.min(1,A[id]*2.2);   // спокойно у узла, резво на пучности
+      gx=gx/gl*settle*amp; gy=gy/gl*settle*amp;
+      x-=gx; y-=gy;
+    }
+
+    if(jitter>0){
+      const amp=Math.min(1,A[id]*2.2);
+      x+=(Math.random()-0.5)*jitter*amp;
+      y+=(Math.random()-0.5)*jitter*amp;
+    }
+
+    if(back>0){
+      x+=(this.home[i*2]-x)*back;
+      y+=(this.home[i*2+1]-y)*back;
+    }
+
+    const r=Math.hypot(x,y);
+    if(r>0.995){ x=x/r*0.995; y=y/r*0.995; }
+
+    this.p[i*2]=x; this.p[i*2+1]=y;
+  }
+};
+
+Disc.prototype.draw=function(cx,cy,rad){
+  ctx.fillStyle="#0A0A0A";
+  const s=1.5;
+  for(let i=0;i<NPART;i++){
+    const px=cx+this.p[i*2]*rad, py=cy+this.p[i*2+1]*rad;
+    ctx.fillRect(px-s/2, py-s/2, s, s);
+  }
+};
+
+buildFields();
+const discL=new Disc(), discR=new Disc();
 
 function drawBand(){
   const w=cv.clientWidth,h=cv.clientHeight;
@@ -388,10 +498,11 @@ function drawBand(){
   const cy=h/2-4;
   const left=w/2-gap/2-rad, right=w/2+gap/2+rad;
 
-  const ph=performance.now()/500;
   const past=stateAgo(S.delay);
-  drawDisc(left ,cy,rad, S.running?S.bands:ZERO, S.running?S.level:0, ph);
-  drawDisc(right,cy,rad, S.running?past.b:ZERO,  S.running?past.v:0,  ph - S.delay/500);
+  discL.step(S.running?S.bands:ZERO, S.running?S.level:0);
+  discR.step(S.running?past.b:ZERO,  S.running?past.v:0);
+  discL.draw(left ,cy,rad);
+  discR.draw(right,cy,rad);
 
   ctx.fillStyle="rgba(10,10,10,.45)";
   ctx.font="600 10px 'Segoe UI',Arial";
