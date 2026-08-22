@@ -13,123 +13,102 @@
   --slab:rgba(10,10,10,.12);
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
+html,body{height:100%;overflow:hidden}
 body{
-  background:var(--paper);
-  color:var(--ink);
+  background:var(--paper);color:var(--ink);
   font-family:"Segoe UI Variable Display","Segoe UI",Arial,sans-serif;
-  font-weight:700;
-  overflow:hidden;
-  user-select:none;
-  cursor:default;
+  font-weight:700;user-select:none;cursor:default;
 }
 .mono{font-family:"Cascadia Mono",Consolas,monospace;font-weight:500;font-variant-numeric:tabular-nums}
 .caps{text-transform:uppercase;letter-spacing:.16em;font-size:10px;font-weight:600}
 
-/* ---------- каркас ---------- */
 #app{height:100vh;display:flex;flex-direction:column}
-header{
-  height:52px;background:var(--ink);color:var(--paper);
-  display:flex;align-items:center;padding:0 22px;gap:14px;flex:none;
-}
+
+header{height:52px;background:var(--ink);color:var(--paper);
+  display:flex;align-items:center;padding:0 22px;gap:14px;flex:none}
 header.fault{background:var(--blue)}
 #logo{font-size:17px;letter-spacing:.04em}
 #dash{opacity:.5}
 #status{font-size:10px;text-transform:uppercase;letter-spacing:.16em}
 header .right{margin-left:auto;display:flex;align-items:center;gap:16px}
 #route{font-size:10px;letter-spacing:.12em;text-transform:uppercase;opacity:.65;
-  max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ghost{
-  background:transparent;color:inherit;border:2px solid currentColor;border-radius:0;
-  font:inherit;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
-  padding:7px 14px;cursor:pointer;
-}
+  max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ghost{background:transparent;color:inherit;border:2px solid currentColor;border-radius:0;
+  font:inherit;font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:7px 14px;cursor:pointer}
 .ghost:hover{background:var(--paper);color:var(--ink)}
-header .ghost:hover{background:var(--paper);color:var(--ink)}
 
-/* ---------- полоса дисков ---------- */
-#band{flex:1;min-height:0;border-bottom:1px solid var(--hair);position:relative}
+#main{flex:1;min-height:0;display:flex;flex-direction:column}
+#band{flex:1;min-height:0;border-bottom:1px solid var(--hair)}
 #discs{width:100%;height:100%;display:block}
 
-/* ---------- нижняя панель ---------- */
-#strip{height:208px;flex:none;display:grid;grid-template-columns:404px 168px 1fr}
-#strip>*{padding:16px 22px}
-#delayCell{border-right:1px solid var(--hair)}
-#tilesCell{border-right:1px solid var(--hair);display:flex;flex-direction:column;gap:8px;justify-content:center}
-#rightCell{display:flex;gap:24px;align-items:flex-start}
+/* нижняя панель: четыре колонки, чтобы таймер всегда был на виду */
+#strip{flex:none;height:214px;display:grid;
+  grid-template-columns:330px 138px 226px 1fr;padding-bottom:18px}
+#strip>div{padding:14px 18px}
+#delayCell,#tilesCell,#playCell{border-right:1px solid var(--hair)}
 
-#delayValue{font-size:150px;line-height:.82;letter-spacing:-.05em;display:flex;align-items:baseline}
-#delayValue small{font-size:20px;letter-spacing:0;margin-left:6px}
-#delaySlab{height:40px;background:var(--slab);margin-top:14px;position:relative;cursor:pointer}
+#delayValue{font-size:132px;line-height:.82;letter-spacing:-.05em;display:flex;align-items:baseline}
+#delayValue small{font-size:18px;letter-spacing:0;margin-left:5px}
+#delaySlab{height:34px;background:var(--slab);margin-top:12px;position:relative;cursor:pointer}
 #delayFill{position:absolute;left:0;top:0;bottom:0;background:var(--blue)}
 #delayMarker{position:absolute;top:0;bottom:0;width:8px;background:var(--ink)}
-#scale{display:flex;justify-content:space-between;margin-top:5px;font-size:9.5px}
+#scale{display:flex;justify-content:space-between;margin-top:4px;font-size:9.5px}
 #scale span{color:var(--muted)}
-#floorNote{margin-top:10px;font-size:11px;font-weight:600;line-height:1.4;color:var(--blue)}
+#floorNote{margin-top:8px;font-size:10.5px;font-weight:600;line-height:1.35;color:var(--blue)}
 
-.tile{
-  background:transparent;border:2px solid var(--ink);color:var(--ink);
-  font:inherit;font-size:12px;height:32px;border-radius:0;cursor:pointer;
-}
+#tilesCell{display:flex;flex-direction:column;gap:7px;justify-content:center}
+.tile{background:transparent;border:2px solid var(--ink);color:var(--ink);
+  font:inherit;font-size:12px;height:30px;border-radius:0;cursor:pointer}
 .tile.on{background:var(--ink);color:var(--paper)}
-.tile:active{transform:translateY(1px)}
-.tilerow{display:flex;gap:8px}
+.tilerow{display:flex;gap:7px}
 .tilerow .tile{flex:1}
-#longTile{height:30px;font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+#longTile{height:28px;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
 
-#startWrap{display:flex;flex-direction:column;align-items:center;gap:10px;width:120px}
-#startBtn{
-  width:84px;height:84px;border-radius:50%;border:2px solid var(--ink);
+#playCell{display:flex;gap:16px;align-items:flex-start}
+#startWrap{display:flex;flex-direction:column;align-items:center;gap:9px;width:104px}
+#startBtn{width:84px;height:84px;border-radius:50%;border:2px solid var(--ink);
   background:var(--ink);color:var(--paper);font:inherit;font-size:14px;
-  text-transform:uppercase;letter-spacing:.08em;cursor:pointer;
-}
+  text-transform:uppercase;letter-spacing:.08em;cursor:pointer}
 #startBtn.running{background:var(--blue);border-color:var(--blue);color:#fff}
-#hint{font-size:11px;line-height:1.4;font-weight:600;text-align:center;color:var(--muted)}
-
-.meters{display:flex;gap:12px}
-.meter{width:36px}
-.meterbar{height:88px;background:var(--slab);position:relative;cursor:ns-resize}
+#hint{font-size:10.5px;line-height:1.35;font-weight:600;text-align:center;color:var(--muted)}
+.meters{display:flex;gap:10px}
+.meter{width:32px}
+.meterbar{height:84px;background:var(--slab);position:relative;cursor:ns-resize}
 .meterfill{position:absolute;left:0;right:0;bottom:0;background:var(--blue)}
 .meterfill.clip{background:var(--ink)}
 .meterline{position:absolute;left:0;right:0;height:2px;background:var(--ink)}
-.meterzone{position:absolute;left:0;right:0;height:1px;background:rgba(10,10,10,.25)}
-.meter .caps{margin-top:7px}
-.meter .val{font-size:10px;margin-top:2px;color:var(--muted)}
+.meterzone{position:absolute;left:0;right:0;height:1px;background:rgba(10,10,10,.28)}
+.meter .caps{margin-top:6px;font-size:9px}
+.meter .val{font-size:9.5px;margin-top:2px;color:var(--muted)}
 
-#sessionCell{margin-left:auto;text-align:right}
-#clock{font-size:40px;letter-spacing:-.02em;line-height:1}
-#timerState{font-size:9.5px;color:var(--muted);margin-top:2px}
-#timerTiles{display:flex;gap:8px;margin-top:8px;justify-content:flex-end}
-#timerTiles .tile{width:56px}
+#sessionCell{text-align:right;display:flex;flex-direction:column;align-items:flex-end}
+#clock{font-size:44px;letter-spacing:-.02em;line-height:1;margin-top:2px}
+#timerState{font-size:9px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.14em}
+#timerTiles{display:flex;gap:6px;margin-top:10px}
+#timerTiles .tile{width:40px;font-size:11px}
 
-/* ---------- настройки ---------- */
-#settings{display:none;flex:1;min-height:0;overflow:auto}
-#settings.show{display:block}
-#setGrid{display:grid;grid-template-columns:1fr 1fr;gap:0;min-height:100%}
-#setGrid>div{padding:22px;border-right:1px solid var(--hair)}
-#setGrid>div:last-child{border-right:0}
-.devlist{margin:8px 0 22px}
-.dev{
-  display:flex;align-items:center;gap:12px;padding:10px 12px;
-  border:1px solid var(--hair);margin-bottom:-1px;cursor:pointer;font-size:13px;font-weight:600;
-}
+/* настройки — без прокрутки, всё на виду */
+#settings{display:none;flex:1;min-height:0;flex-direction:column}
+#settings.show{display:flex}
+#setGrid{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr}
+#setGrid>div{padding:16px 20px;overflow:hidden}
+#setGrid>div:first-child{border-right:1px solid var(--hair)}
+.devlist{margin:6px 0 14px}
+.dev{display:flex;align-items:center;gap:10px;padding:7px 11px;
+  border:1px solid var(--hair);margin-bottom:-1px;cursor:pointer;font-size:12.5px;font-weight:600}
 .dev.sel{background:var(--blue);color:#fff;border-color:var(--blue);position:relative;z-index:1}
-.dev .box{width:13px;height:13px;border:2px solid currentColor;flex:none}
-.dev.sel .box{background:#fff}
-.dev .rate{margin-left:auto;font-size:10px;opacity:.6}
-#rtValue{font-size:56px;letter-spacing:-.04em;line-height:1;margin-top:6px}
-#rtValue small{font-size:16px;letter-spacing:0;margin-left:4px}
-#rtNote{font-size:11.5px;font-weight:600;line-height:1.5;margin-top:12px;max-width:380px;color:var(--muted)}
-#measureBtn{margin-top:20px}
-.footer{
-  border-top:1px solid var(--hair);padding:14px 22px;display:flex;align-items:center;gap:14px;
-}
-.footer .right{margin-left:auto;display:flex;gap:10px}
-.solid{
-  background:var(--ink);color:var(--paper);border:2px solid var(--ink);border-radius:0;
-  font:inherit;font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:9px 18px;cursor:pointer;
-}
-#err{color:var(--blue);font-size:12px;font-weight:600;margin-top:10px;min-height:16px}
+.dev .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dev .rate{margin-left:auto;font-size:9.5px;opacity:.6;flex:none}
+#rtValue{font-size:52px;letter-spacing:-.04em;line-height:1;margin-top:4px}
+#rtValue small{font-size:15px;letter-spacing:0;margin-left:4px}
+#rtNote{font-size:11px;font-weight:600;line-height:1.45;margin-top:10px;color:var(--muted)}
+#measureBtn{margin-top:16px}
+#err{color:var(--blue);font-size:11.5px;font-weight:600;margin-top:10px;min-height:15px;line-height:1.4}
+.footer{flex:none;border-top:1px solid var(--hair);padding:12px 20px 18px;
+  display:flex;align-items:center;gap:12px}
+.footer .right{margin-left:auto}
+.solid{background:var(--ink);color:var(--paper);border:2px solid var(--ink);border-radius:0;
+  font:inherit;font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:9px 18px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -144,18 +123,15 @@ header .ghost:hover{background:var(--paper);color:var(--ink)}
     </div>
   </header>
 
-  <!-- ГЛАВНЫЙ ЭКРАН -->
-  <div id="main" style="flex:1;min-height:0;display:flex;flex-direction:column">
+  <div id="main">
     <div id="band"><canvas id="discs"></canvas></div>
 
     <div id="strip">
       <div id="delayCell">
         <div class="caps" id="lblDelay">Задержка</div>
         <div id="delayValue">120<small>мс</small></div>
-        <div id="delaySlab">
-          <div id="delayFill"></div><div id="delayMarker"></div>
-        </div>
-        <div id="scale"><span>20</span><span>100</span><span>200</span><span>300</span><span>400</span></div>
+        <div id="delaySlab"><div id="delayFill"></div><div id="delayMarker"></div></div>
+        <div id="scale"></div>
         <div id="floorNote"></div>
       </div>
 
@@ -175,18 +151,18 @@ header .ghost:hover{background:var(--paper);color:var(--ink)}
         <button class="tile" id="longTile">0–4 с</button>
       </div>
 
-      <div id="rightCell">
+      <div id="playCell">
         <div id="startWrap">
           <button id="startBtn">Пуск</button>
           <div id="hint"></div>
         </div>
-
         <div class="meters">
           <div class="meter">
             <div class="meterbar" id="micBar">
               <div class="meterfill" id="micFill"></div>
               <div class="meterline" id="micLine"></div>
-              <div class="meterzone" style="bottom:25%"></div>
+              <div class="meterzone" style="bottom:22%"></div>
+              <div class="meterzone" style="bottom:80%"></div>
             </div>
             <div class="caps" id="lblMic">Микр</div>
             <div class="val mono" id="micVal">0 дБ</div>
@@ -195,29 +171,29 @@ header .ghost:hover{background:var(--paper);color:var(--ink)}
             <div class="meterbar" id="outBar">
               <div class="meterfill" id="outFill"></div>
               <div class="meterline" id="outLine"></div>
-              <div class="meterzone" style="bottom:25%"></div>
+              <div class="meterzone" style="bottom:22%"></div>
+              <div class="meterzone" style="bottom:80%"></div>
             </div>
             <div class="caps" id="lblOut">Выход</div>
             <div class="val mono" id="outVal">0 дБ</div>
           </div>
         </div>
+      </div>
 
-        <div id="sessionCell">
-          <div class="caps" id="lblSession">Занятие</div>
-          <div id="clock" class="mono">30:00</div>
-          <div id="timerState" class="caps">готов</div>
-          <div id="timerTiles">
-            <button class="tile tmr" data-m="15">15</button>
-            <button class="tile tmr on" data-m="30">30</button>
-            <button class="tile tmr" data-m="40">40</button>
-            <button class="tile tmr" data-m="0">∞</button>
-          </div>
+      <div id="sessionCell">
+        <div class="caps" id="lblSession">Занятие</div>
+        <div id="clock" class="mono">30:00</div>
+        <div id="timerState">готов</div>
+        <div id="timerTiles">
+          <button class="tile tmr" data-m="15">15</button>
+          <button class="tile tmr on" data-m="30">30</button>
+          <button class="tile tmr" data-m="40">40</button>
+          <button class="tile tmr" data-m="0">∞</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- НАСТРОЙКИ -->
   <div id="settings">
     <div id="setGrid">
       <div>
@@ -225,7 +201,7 @@ header .ghost:hover{background:var(--paper);color:var(--ink)}
         <div class="devlist" id="inputs"></div>
         <div class="caps" id="lblOutput">Выход</div>
         <div class="devlist" id="outputs"></div>
-        <div id="devNote" style="font-size:11.5px;font-weight:600;color:var(--muted);line-height:1.5"></div>
+        <div id="devNote" style="font-size:11px;font-weight:600;color:var(--muted);line-height:1.45"></div>
       </div>
       <div>
         <div class="caps" id="lblRt">Задержка оборудования</div>
@@ -248,14 +224,14 @@ header .ghost:hover{background:var(--paper);color:var(--ink)}
 <script>
 const invoke = (cmd, args) => window.__TAURI__.core.invoke(cmd, args);
 
-// ---------------------------------------------------------------- словарь
 const T = {
   ru:{status_idle:"ПОКОЙ",status_run:"РАБОТА",status_fault:"НЕТ УСТРОЙСТВА",
       delay:"Задержка",mic:"Микр",out:"Выход",session:"Занятие",
       start:"Пуск",stop:"Стоп",settings:"Настройки",done:"Готово",
       input:"Вход",output:"Выход",rt:"Задержка оборудования",lang:"Язык",
-      measure:"Измерить",ms:"мс",ready:"готов",running:"идёт",paused:"пауза",
+      measure:"Измерить",ms:"мс",db:"дБ",ready:"готов",running:"идёт",paused:"пауза",
       last:"последняя минута",over:"время вышло",long:"0–4 с",
+      voice:"ГОЛОС",ret:"ВОЗВРАТ",
       hint_slow:"Тяните гласные, идите вслед за звуком",
       hint_normal:"Говорите в обычном темпе",
       devnote:"Вход и выход на одном устройстве дают меньшую задержку.",
@@ -266,8 +242,9 @@ const T = {
       delay:"Delay",mic:"Mic",out:"Out",session:"Session",
       start:"Start",stop:"Stop",settings:"Settings",done:"Done",
       input:"Input",output:"Output",rt:"Hardware round trip",lang:"Language",
-      measure:"Measure",ms:"ms",ready:"ready",running:"running",paused:"paused",
+      measure:"Measure",ms:"ms",db:"dB",ready:"ready",running:"running",paused:"paused",
       last:"last minute",over:"time is up",long:"0–4 s",
+      voice:"VOICE",ret:"RETURN",
       hint_slow:"Stretch the vowels, follow the sound",
       hint_normal:"Speak at your normal pace",
       devnote:"One device for input and output gives lower latency.",
@@ -276,278 +253,258 @@ const T = {
       measuring:"Measuring, about five seconds..."}
 };
 
-// ---------------------------------------------------------------- состояние
 const S = {
   lang:"ru", delay:120, longMode:false, running:false,
-  micDb:0, outDb:-12, floor:0, subtract:false,
+  micDb:0, outDb:-12, floor:0,
   input:null, output:null, inputs:[], outputs:[],
-  timerMin:30, remain:30*60, timerRunning:false, over:false,
-  level:0, history:[], lastTick:performance.now()
+  timerMin:30, remain:30*60, timerRunning:false, over:false, elapsed:0,
+  raw:0, level:0, history:[], peakIn:0, peakOut:0, clip:false
 };
 
 const $ = id => document.getElementById(id);
 const t = k => T[S.lang][k];
 
-// ---------------------------------------------------------------- отрисовка
-function minDelay(){ return S.subtract ? 20 : Math.max(20, Math.round(S.floor)); }
+function minDelay(){ return Math.max(20, Math.round(S.floor)); }
 function maxDelay(){ return S.longMode ? 4000 : 400; }
 
 function paint(){
   const d = S.delay;
   $("delayValue").innerHTML = d + '<small>'+t("ms")+'</small>';
-  $("delayValue").style.fontSize = S.longMode ? "128px" : "150px";
+  $("delayValue").style.fontSize = S.longMode ? "112px" : "132px";
 
-  const lo = minDelay(), hi = maxDelay();
-  const frac = Math.max(0, Math.min(1, (d - 20) / (hi - 20)));
-  const slabW = $("delaySlab").clientWidth;
-  $("delayFill").style.width = (frac*slabW) + "px";
-  $("delayMarker").style.left = Math.max(0, frac*slabW - 4) + "px";
+  const hi = maxDelay();
+  const frac = Math.max(0, Math.min(1, (d-20)/(hi-20)));
+  const w = $("delaySlab").clientWidth;
+  $("delayFill").style.width = (frac*w)+"px";
+  $("delayMarker").style.left = Math.max(0, frac*w-4)+"px";
 
   const marks = S.longMode ? [0,1000,2000,3000,4000] : [20,100,200,300,400];
   $("scale").innerHTML = marks.map(m=>`<span>${m}</span>`).join("");
+  $("floorNote").textContent = S.floor>20 ? t("floor")(Math.round(S.floor)) : "";
 
-  $("floorNote").textContent = (S.floor > 20 && !S.subtract) ? t("floor")(Math.round(S.floor)) : "";
-
-  document.querySelectorAll(".preset").forEach(b=>
-    b.classList.toggle("on", +b.dataset.v === d));
+  document.querySelectorAll(".preset").forEach(b=>b.classList.toggle("on", +b.dataset.v===d));
   $("longTile").classList.toggle("on", S.longMode);
   $("longTile").textContent = t("long");
 
   $("startBtn").textContent = S.running ? t("stop") : t("start");
   $("startBtn").classList.toggle("running", S.running);
-  $("hint").textContent = d >= 90 ? t("hint_slow") : t("hint_normal");
-
+  $("hint").textContent = d>=90 ? t("hint_slow") : t("hint_normal");
   $("status").textContent = S.running ? t("status_run") : t("status_idle");
-  $("route").textContent = (S.input && S.output)
-      ? (short(S.input)+" → "+short(S.output)) : "";
+  $("route").textContent = (S.input&&S.output) ? (short(S.input)+" → "+short(S.output)) : "";
 
-  $("lblDelay").textContent = t("delay");
-  $("lblMic").textContent = t("mic");
-  $("lblOut").textContent = t("out");
-  $("lblSession").textContent = t("session");
-  $("lblInput").textContent = t("input");
-  $("lblOutput").textContent = t("output");
-  $("lblRt").textContent = t("rt");
-  $("lblLang").textContent = t("lang");
-  $("settingsBtn").textContent = t("settings");
-  $("measureBtn").textContent = t("measure");
-  $("doneBtn").textContent = t("done");
-  $("devNote").textContent = t("devnote");
+  $("lblDelay").textContent=t("delay"); $("lblMic").textContent=t("mic");
+  $("lblOut").textContent=t("out");     $("lblSession").textContent=t("session");
+  $("lblInput").textContent=t("input"); $("lblOutput").textContent=t("output");
+  $("lblRt").textContent=t("rt");       $("lblLang").textContent=t("lang");
+  $("settingsBtn").textContent=t("settings"); $("measureBtn").textContent=t("measure");
+  $("doneBtn").textContent=t("done");   $("devNote").textContent=t("devnote");
   if(!$("rtNote").dataset.busy) $("rtNote").textContent = t("rtnote");
   $("rtValue").innerHTML = (S.floor?S.floor.toFixed(1):"—")+'<small>'+t("ms")+'</small>';
 
-  $("micVal").textContent = S.micDb.toFixed(0)+" "+(S.lang==="ru"?"дБ":"dB");
-  $("outVal").textContent = S.outDb.toFixed(0)+" "+(S.lang==="ru"?"дБ":"dB");
+  $("micVal").textContent = S.micDb.toFixed(0)+" "+t("db");
+  $("outVal").textContent = S.outDb.toFixed(0)+" "+t("db");
   $("micLine").style.bottom = ((S.micDb+40)/60*100)+"%";
   $("outLine").style.bottom = ((S.outDb+40)/60*100)+"%";
 
-  document.querySelectorAll(".tmr").forEach(b=>
-    b.classList.toggle("on", +b.dataset.m === S.timerMin));
+  document.querySelectorAll(".tmr").forEach(b=>b.classList.toggle("on", +b.dataset.m===S.timerMin));
   paintClock();
 }
-
-function short(n){ return n.length>26 ? n.slice(0,24)+"…" : n; }
+function short(n){ return n.length>22 ? n.slice(0,20)+"…" : n; }
 
 function paintClock(){
-  if(S.timerMin === 0){
-    const el = Math.floor((Date.now()-(S.startedAt||Date.now()))/1000);
-    $("clock").textContent = fmt(el);
-  } else {
-    $("clock").textContent = fmt(Math.max(0,S.remain));
-  }
+  $("clock").textContent = S.timerMin===0 ? fmt(S.elapsed) : fmt(Math.max(0,S.remain));
   let st = t("ready");
   if(S.over) st = t("over");
   else if(S.timerRunning) st = (S.timerMin>0 && S.remain<60) ? t("last") : t("running");
-  else if(S.remain < S.timerMin*60) st = t("paused");
+  else if(S.timerMin>0 && S.remain < S.timerMin*60) st = t("paused");
+  else if(S.timerMin===0 && S.elapsed>0) st = t("paused");
   $("timerState").textContent = st;
 }
-function fmt(s){
-  const m = Math.floor(s/60), r = s%60;
-  return String(m).padStart(2,"0")+":"+String(r).padStart(2,"0");
-}
+function fmt(s){const m=Math.floor(s/60),r=s%60;
+  return String(m).padStart(2,"0")+":"+String(r).padStart(2,"0");}
 
-// ---------------------------------------------------------------- диски
-const cv = $("discs"), ctx = cv.getContext("2d");
+/* ---------------- диски ---------------- */
+const cv=$("discs"), ctx=cv.getContext("2d");
 function resize(){
-  const r = $("band").getBoundingClientRect();
-  cv.width = r.width * devicePixelRatio;
-  cv.height = r.height * devicePixelRatio;
-  cv.style.width = r.width+"px"; cv.style.height = r.height+"px";
+  const r=$("band").getBoundingClientRect();
+  cv.width=r.width*devicePixelRatio; cv.height=r.height*devicePixelRatio;
+  cv.style.width=r.width+"px"; cv.style.height=r.height+"px";
   ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
 }
-addEventListener("resize", ()=>{resize();paint();});
 
-function drawDisc(cx,cy,rad,level,seed){
-  const pitch = 9;
-  ctx.fillStyle = "#0A0A0A";
-  for(let y=-rad;y<=rad;y+=pitch){
-    for(let x=-rad;x<=rad;x+=pitch){
-      const dist = Math.hypot(x,y);
+const PITCH=5;              // втрое больше точек, чем было
+function drawDisc(cx,cy,rad,lvl,phase){
+  ctx.fillStyle="#0A0A0A";
+  const amp = lvl*rad*0.30;              // размах смещения
+  for(let y=-rad;y<=rad;y+=PITCH){
+    for(let x=-rad;x<=rad;x+=PITCH){
+      const dist=Math.hypot(x,y);
       if(dist>rad) continue;
-      const n = Math.sin((x*0.11+seed)*1.7)+Math.cos((y*0.13-seed)*1.3);
-      const push = level * 7 * n;
-      const s = 1.6 + level*2.2*Math.abs(n);
-      ctx.beginPath();
-      ctx.arc(cx+x+push*0.6, cy+y+push*0.4, Math.max(.4,s/2), 0, 6.283);
-      ctx.fill();
+      const ang=Math.atan2(y,x);
+      // радиальная волна от центра плюс две поперечных — рисунок не повторяется
+      const wave = Math.sin(dist*0.075 - phase*2.4)
+                 + 0.6*Math.sin(x*0.055 + phase*1.7)
+                 + 0.6*Math.cos(y*0.062 - phase*1.3);
+      const edge = 1 - (dist/rad)*(dist/rad)*0.55;   // к краю спокойнее
+      const push = amp*wave*0.42*edge;
+      const px = cx + x + Math.cos(ang)*push;
+      const py = cy + y + Math.sin(ang)*push;
+      const r = 1.05 + lvl*1.5*Math.abs(wave)*edge;
+      ctx.beginPath(); ctx.arc(px,py,r,0,6.283); ctx.fill();
     }
   }
 }
 
 function drawBand(){
-  const w = cv.clientWidth, h = cv.clientHeight;
+  const w=cv.clientWidth,h=cv.clientHeight;
   ctx.clearRect(0,0,w,h);
   if(w<10||h<10) return;
 
-  const rad = Math.min(118, h*0.34);
-  const frac = Math.min(1,(S.delay-20)/(maxDelay()-20));
-  const maxGap = w - 2*(2*rad) - 120;
-  const gap = 8 + frac * Math.max(20,maxGap);
-  const cy = h/2 - 6;
-  const left = w/2 - gap/2 - rad, right = w/2 + gap/2 + rad;
+  const rad=Math.min(122,h*0.36);
+  const frac=Math.min(1,(S.delay-20)/(maxDelay()-20));
+  const room=w-4*rad-140;
+  const gap=10+frac*Math.max(20,room);
+  const cy=h/2-4;
+  const left=w/2-gap/2-rad, right=w/2+gap/2+rad;
 
-  const seed = performance.now()/220;
-  const delayed = levelAgo(S.delay);
-  drawDisc(left, cy, rad, S.running?S.level:0, seed);
-  drawDisc(right, cy, rad, S.running?delayed:0, seed-S.delay/300);
+  const ph=performance.now()/500;
+  const back=levelAgo(S.delay);
+  drawDisc(left ,cy,rad,S.running?S.level:0, ph);
+  drawDisc(right,cy,rad,S.running?back:0,    ph - S.delay/500);
 
-  // подписи
-  ctx.fillStyle = "rgba(10,10,10,.45)";
-  ctx.font = "600 10px 'Segoe UI',Arial";
-  ctx.textAlign = "center";
-  ctx.letterSpacing = "1.6px";
-  ctx.fillText(S.lang==="ru"?"ГОЛОС":"VOICE", left, cy-rad-22);
-  ctx.fillText(S.lang==="ru"?"ВОЗВРАТ":"RETURN", right, cy-rad-22);
+  ctx.fillStyle="rgba(10,10,10,.45)";
+  ctx.font="600 10px 'Segoe UI',Arial";
+  ctx.textAlign="center";
+  ctx.fillText(t("voice"), left , cy-rad-20);
+  ctx.fillText(t("ret")  , right, cy-rad-20);
 
-  // размерная линия — это и есть задержка
-  const x1 = left+rad+6, x2 = right-rad-6;
-  ctx.strokeStyle = "#0B3BE8"; ctx.lineWidth = 1.5;
+  const x1=left+rad+8, x2=right-rad-8;
+  ctx.strokeStyle="#0B3BE8"; ctx.lineWidth=1.5;
   ctx.beginPath();
   ctx.moveTo(x1,cy-9); ctx.lineTo(x1,cy+9);
   ctx.moveTo(x2,cy-9); ctx.lineTo(x2,cy+9);
-  ctx.moveTo(x1,cy); ctx.lineTo(x2,cy);
+  ctx.moveTo(x1,cy);   ctx.lineTo(x2,cy);
   ctx.stroke();
-  const label = S.delay+" "+t("ms");
-  ctx.font = "700 12px 'Segoe UI',Arial";
-  const tw = ctx.measureText(label).width + 12;
-  const mid = (x1+x2)/2;
-  const above = (x2-x1) < tw+16;
-  ctx.fillStyle = "#E9E5DA";
+
+  const label=S.delay+" "+t("ms");
+  ctx.font="700 12px 'Segoe UI',Arial";
+  const tw=ctx.measureText(label).width+12, mid=(x1+x2)/2;
+  const above=(x2-x1)<tw+16;
+  ctx.fillStyle="#E9E5DA";
   ctx.fillRect(mid-tw/2, above?cy-30:cy-9, tw, 18);
-  ctx.fillStyle = "#0B3BE8";
+  ctx.fillStyle="#0B3BE8";
   ctx.fillText(label, mid, above?cy-17:cy+4);
 }
 
 function levelAgo(ms){
-  const now = performance.now();
-  for(let i=S.history.length-1;i>=0;i--){
-    if(now - S.history[i].t >= ms) return S.history[i].v;
-  }
+  const now=performance.now();
+  for(let i=S.history.length-1;i>=0;i--)
+    if(now-S.history[i].t>=ms) return S.history[i].v;
   return 0;
 }
 
 function frame(){
+  // сглаживание: быстрый подъём, мягкий спад — иначе картинка дёргается
+  const target=S.raw;
+  S.level += (target>S.level ? 0.55 : 0.06)*(target-S.level);
+  S.history.push({t:performance.now(), v:S.level});
+  while(S.history.length>600) S.history.shift();
   drawBand();
   requestAnimationFrame(frame);
 }
 
-// ---------------------------------------------------------------- опрос ядра
+/* ---------------- опрос ядра ---------------- */
+// Кривая чувствительности: тихая речь уже должна шевелить точки,
+// линейный уровень для этого слишком вялый.
+function curve(p){ return Math.min(1, Math.pow(Math.min(1,p*2.2), 0.42)); }
+
 async function poll(){
   try{
-    const m = await invoke("meters");
-    S.level = Math.min(1, m.peak_in*1.6);
-    S.history.push({t:performance.now(), v:S.level});
-    while(S.history.length>400) S.history.shift();
-
-    $("micFill").style.height = (Math.min(1,m.peak_in)*100)+"%";
-    $("outFill").style.height = (Math.min(1,m.peak_out)*100)+"%";
-    $("micFill").classList.toggle("clip", m.clipping);
-    $("hdr").classList.toggle("fault", m.clipping);
+    const m=await invoke("meters");
+    S.raw = S.running ? curve(m.peak_in) : 0;
+    S.peakIn=m.peak_in; S.peakOut=m.peak_out; S.clip=m.clipping;
+    $("micFill").style.height=(curve(m.peak_in)*100)+"%";
+    $("outFill").style.height=(curve(m.peak_out)*100)+"%";
+    $("micFill").classList.toggle("clip",m.clipping);
+    $("hdr").classList.toggle("fault",m.clipping);
   }catch(e){}
-  setTimeout(poll, 40);
+  setTimeout(poll,33);
 }
 
-// ---------------------------------------------------------------- таймер
 setInterval(()=>{
   if(S.timerRunning && S.running){
     if(S.timerMin>0){
       S.remain--;
-      if(S.remain<=0){ S.remain=0; S.over=true; S.timerRunning=false; }
-    }
+      if(S.remain<=0){S.remain=0;S.over=true;S.timerRunning=false;}
+    } else S.elapsed++;
   }
   paintClock();
 },1000);
 
-// ---------------------------------------------------------------- события
-$("startBtn").onclick = async ()=>{
+/* ---------------- события ---------------- */
+$("startBtn").onclick=async()=>{
   if(S.running){
-    await invoke("stop");
-    S.running=false; S.timerRunning=false;
-  } else {
-    if(!S.input||!S.output){ openSettings(); return; }
+    await invoke("stop"); S.running=false; S.timerRunning=false;
+  }else{
+    if(!S.input||!S.output){openSettings();return;}
     try{
       await invoke("start",{input:S.input,output:S.output,delayMs:S.delay});
       await invoke("set_gains",{micDb:S.micDb,outDb:S.outDb});
       S.running=true; S.over=false;
-      if(!S.timerRunning && S.remain>0){ S.timerRunning=true; S.startedAt=Date.now(); }
-    }catch(e){
-      $("status").textContent = t("status_fault");
-      alert(e);
-    }
+      if(!S.timerRunning) S.timerRunning=true;
+    }catch(e){ $("status").textContent=t("status_fault"); alert(e); }
   }
   paint(); save();
 };
 
 function setDelay(v){
-  S.delay = Math.max(minDelay(), Math.min(maxDelay(), Math.round(v)));
+  S.delay=Math.max(minDelay(),Math.min(maxDelay(),Math.round(v)));
   invoke("set_delay",{delayMs:S.delay}).catch(()=>{});
   paint(); save();
 }
-document.querySelectorAll(".preset").forEach(b=> b.onclick=()=>setDelay(+b.dataset.v));
-$("minus").onclick = ()=>setDelay(S.delay-10);
-$("plus").onclick  = ()=>setDelay(S.delay+10);
-$("longTile").onclick = ()=>{ S.longMode=!S.longMode; if(!S.longMode&&S.delay>400) setDelay(400); paint(); save(); };
+document.querySelectorAll(".preset").forEach(b=>b.onclick=()=>setDelay(+b.dataset.v));
+$("minus").onclick=()=>setDelay(S.delay-10);
+$("plus").onclick =()=>setDelay(S.delay+10);
+$("longTile").onclick=()=>{S.longMode=!S.longMode; if(!S.longMode&&S.delay>400)setDelay(400); paint(); save();};
 
 let dragging=false;
 function slabToDelay(e){
-  const r = $("delaySlab").getBoundingClientRect();
-  const f = Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));
-  setDelay(20 + f*(maxDelay()-20));
+  const r=$("delaySlab").getBoundingClientRect();
+  const f=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));
+  setDelay(20+f*(maxDelay()-20));
 }
 $("delaySlab").addEventListener("mousedown",e=>{dragging=true;slabToDelay(e);});
-addEventListener("mousemove",e=>{ if(dragging) slabToDelay(e); });
+addEventListener("mousemove",e=>{if(dragging)slabToDelay(e);});
 addEventListener("mouseup",()=>dragging=false);
 
-function meterDrag(barId, key){
+function meterDrag(bar,key){
   let on=false;
   const apply=e=>{
-    const r=$(barId).getBoundingClientRect();
+    const r=$(bar).getBoundingClientRect();
     const f=Math.max(0,Math.min(1,1-(e.clientY-r.top)/r.height));
-    S[key] = Math.round(f*60-40);
+    S[key]=Math.round(f*60-40);
     invoke("set_gains",{micDb:S.micDb,outDb:S.outDb}).catch(()=>{});
     paint(); save();
   };
-  $(barId).addEventListener("mousedown",e=>{on=true;apply(e);});
+  $(bar).addEventListener("mousedown",e=>{on=true;apply(e);});
   addEventListener("mousemove",e=>{if(on)apply(e);});
   addEventListener("mouseup",()=>on=false);
 }
-meterDrag("micBar","micDb");
-meterDrag("outBar","outDb");
+meterDrag("micBar","micDb"); meterDrag("outBar","outDb");
 
-document.querySelectorAll(".tmr").forEach(b=> b.onclick=()=>{
-  S.timerMin=+b.dataset.m; S.remain=S.timerMin*60; S.over=false;
-  S.timerRunning=S.running; S.startedAt=Date.now();
-  paint(); save();
+document.querySelectorAll(".tmr").forEach(b=>b.onclick=()=>{
+  S.timerMin=+b.dataset.m; S.remain=S.timerMin*60; S.elapsed=0; S.over=false;
+  S.timerRunning=S.running; paint(); save();
 });
 
-// ---------------------------------------------------------------- настройки
+/* ---------------- настройки ---------------- */
 function openSettings(){
   $("main").style.display="none";
   $("settings").classList.add("show");
-  $("status").textContent = t("settings").toUpperCase();
+  $("status").textContent=t("settings").toUpperCase();
 }
-$("settingsBtn").onclick = openSettings;
-$("doneBtn").onclick = ()=>{
+$("settingsBtn").onclick=openSettings;
+$("doneBtn").onclick=()=>{
   $("settings").classList.remove("show");
   $("main").style.display="flex";
   resize(); paint(); save();
@@ -555,12 +512,12 @@ $("doneBtn").onclick = ()=>{
 
 function renderDevices(){
   const mk=(list,sel,box,key)=>{
-    $(box).innerHTML = list.map((d,i)=>
+    $(box).innerHTML=list.map((d,i)=>
       `<div class="dev ${d.name===sel?'sel':''}" data-i="${i}">
-         <span class="box"></span><span>${d.name}</span>
+         <span class="nm">${d.name}</span>
          <span class="rate mono">${d.rate?(d.rate/1000).toFixed(1)+" kHz":""}</span>
        </div>`).join("");
-    $(box).querySelectorAll(".dev").forEach(el=> el.onclick=()=>{
+    $(box).querySelectorAll(".dev").forEach(el=>el.onclick=()=>{
       S[key]=list[+el.dataset.i].name; renderDevices(); paint(); save();
     });
   };
@@ -568,55 +525,51 @@ function renderDevices(){
   mk(S.outputs,S.output,"outputs","output");
 }
 
-$("measureBtn").onclick = async ()=>{
+$("measureBtn").onclick=async()=>{
   if(!S.input||!S.output) return;
   $("rtNote").dataset.busy="1";
-  $("rtNote").textContent = t("measuring");
+  $("rtNote").textContent=t("measuring");
   $("err").textContent="";
   try{
-    const ms = await invoke("measure",{input:S.input,output:S.output});
-    S.floor = ms;
-    if(S.delay < minDelay()) S.delay = minDelay();
-  }catch(e){ $("err").textContent = String(e); }
+    const ms=await invoke("measure",{input:S.input,output:S.output});
+    S.floor=ms;
+    if(S.delay<minDelay()) S.delay=minDelay();
+  }catch(e){ $("err").textContent=String(e); }
   delete $("rtNote").dataset.busy;
   paint(); save();
 };
 
-$("langRu").onclick = ()=>{ S.lang="ru"; $("langRu").classList.add("on"); $("langEn").classList.remove("on"); document.documentElement.lang="ru"; paint(); save(); };
-$("langEn").onclick = ()=>{ S.lang="en"; $("langEn").classList.add("on"); $("langRu").classList.remove("on"); document.documentElement.lang="en"; paint(); save(); };
+$("langRu").onclick=()=>{S.lang="ru";$("langRu").classList.add("on");$("langEn").classList.remove("on");document.documentElement.lang="ru";paint();save();};
+$("langEn").onclick=()=>{S.lang="en";$("langEn").classList.add("on");$("langRu").classList.remove("on");document.documentElement.lang="en";paint();save();};
 
-// ---------------------------------------------------------------- сохранение
 let saveTimer=null;
 function save(){
   clearTimeout(saveTimer);
   saveTimer=setTimeout(()=>{
-    const d={lang:S.lang,delay:S.delay,micDb:S.micDb,outDb:S.outDb,
-             floor:S.floor,input:S.input,output:S.output,timerMin:S.timerMin};
-    invoke("save_settings",{json:JSON.stringify(d)}).catch(()=>{});
+    invoke("save_settings",{json:JSON.stringify({
+      lang:S.lang,delay:S.delay,micDb:S.micDb,outDb:S.outDb,
+      floor:S.floor,input:S.input,output:S.output,timerMin:S.timerMin
+    })}).catch(()=>{});
   },400);
 }
 
 async function boot(){
   resize();
   try{
-    const raw = await invoke("load_settings");
-    const d = JSON.parse(raw||"{}");
+    const d=JSON.parse(await invoke("load_settings")||"{}");
     Object.assign(S,{
-      lang:d.lang||"ru", delay:d.delay||120, micDb:d.micDb??0, outDb:d.outDb??-12,
-      floor:d.floor||0, input:d.input||null, output:d.output||null,
-      timerMin:d.timerMin??30
+      lang:d.lang||"ru",delay:d.delay||120,micDb:d.micDb??0,outDb:d.outDb??-12,
+      floor:d.floor||0,input:d.input||null,output:d.output||null,timerMin:d.timerMin??30
     });
-    S.remain = S.timerMin*60;
+    S.remain=S.timerMin*60;
   }catch(e){}
-
   try{
-    const lists = await invoke("list_devices");
-    S.inputs=lists.inputs; S.outputs=lists.outputs;
-    if(!S.input && S.inputs[0]) S.input=S.inputs[0].name;
-    if(!S.output && S.outputs[0]) S.output=S.outputs[0].name;
+    const l=await invoke("list_devices");
+    S.inputs=l.inputs; S.outputs=l.outputs;
+    if(!S.input&&S.inputs[0]) S.input=S.inputs[0].name;
+    if(!S.output&&S.outputs[0]) S.output=S.outputs[0].name;
   }catch(e){}
-
-  if(S.lang==="en"){ $("langEn").classList.add("on"); $("langRu").classList.remove("on"); }
+  if(S.lang==="en"){$("langEn").classList.add("on");$("langRu").classList.remove("on");}
   renderDevices(); paint(); poll(); frame();
 }
 boot();
