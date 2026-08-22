@@ -258,7 +258,7 @@ const S = {
   micDb:0, outDb:-12, floor:0,
   input:null, output:null, inputs:[], outputs:[],
   timerMin:30, remain:30*60, timerRunning:false, over:false, elapsed:0,
-  raw:0, level:0, history:[], peakIn:0, peakOut:0, clip:false
+  raw:0, level:0, bands:new Array(8).fill(0), history:[], peakIn:0, peakOut:0, clip:false
 };
 
 const $ = id => document.getElementById(id);
@@ -333,24 +333,44 @@ function resize(){
 }
 
 const PITCH=3.5;            // вдвое плотнее предыдущей версии
-function drawDisc(cx,cy,rad,lvl,phase){
+const NB=8;
+
+// Каждая полоса рисует свою фигуру: номер моды растёт с частотой,
+// поэтому бас даёт пару крупных лепестков, а шипящие — мелкую рябь.
+// Радиальная мода — кольца от центра, угловая — лепестки по кругу.
+const RMODE=[1.0,1.7,2.6,3.8,5.4,7.4,9.8,12.6];
+const AMODE=[2,3,4,5,7,9,11,14];
+
+function drawDisc(cx,cy,rad,bands,lvl,phase){
   ctx.fillStyle="#0A0A0A";
-  const amp = lvl*rad*0.30;              // размах смещения
+  const amp = lvl*rad*0.26;
+  let sum=0; for(let k=0;k<NB;k++) sum+=bands[k];
+  const norm = sum>0.001 ? 1/sum : 0;
+
   for(let y=-rad;y<=rad;y+=PITCH){
     for(let x=-rad;x<=rad;x+=PITCH){
       const dist=Math.hypot(x,y);
       if(dist>rad) continue;
       const ang=Math.atan2(y,x);
-      // радиальная волна от центра плюс две поперечных — рисунок не повторяется
-      const wave = Math.sin(dist*0.075 - phase*2.4)
-                 + 0.6*Math.sin(x*0.055 + phase*1.7)
-                 + 0.6*Math.cos(y*0.062 - phase*1.3);
-      const edge = 1 - (dist/rad)*(dist/rad)*0.55;   // к краю спокойнее
-      const push = amp*wave*0.42*edge;
+      const u=dist/rad;
+
+      let wave=0;
+      for(let k=0;k<NB;k++){
+        const b=bands[k];
+        if(b<0.004) continue;
+        wave += b*(
+            Math.sin(u*Math.PI*RMODE[k]*1.9 - phase*(1.1+k*0.13))
+          * Math.cos(ang*AMODE[k] + phase*0.35*(k%2?1:-1))
+        );
+      }
+      wave *= norm;
+
+      const edge = 1-u*u*0.5;
+      const push = amp*wave*edge;
       const px = cx + x + Math.cos(ang)*push;
       const py = cy + y + Math.sin(ang)*push;
       // на таком размере квадрат неотличим от круга, но рисуется в разы быстрее
-      const r = 0.78 + lvl*1.15*Math.abs(wave)*edge;
+      const r = 0.78 + lvl*1.25*Math.abs(wave)*edge;
       ctx.fillRect(px-r, py-r, r*2, r*2);
     }
   }
@@ -369,9 +389,9 @@ function drawBand(){
   const left=w/2-gap/2-rad, right=w/2+gap/2+rad;
 
   const ph=performance.now()/500;
-  const back=levelAgo(S.delay);
-  drawDisc(left ,cy,rad,S.running?S.level:0, ph);
-  drawDisc(right,cy,rad,S.running?back:0,    ph - S.delay/500);
+  const past=stateAgo(S.delay);
+  drawDisc(left ,cy,rad, S.running?S.bands:ZERO, S.running?S.level:0, ph);
+  drawDisc(right,cy,rad, S.running?past.b:ZERO,  S.running?past.v:0,  ph - S.delay/500);
 
   ctx.fillStyle="rgba(10,10,10,.45)";
   ctx.font="600 10px 'Segoe UI',Arial";
@@ -397,18 +417,19 @@ function drawBand(){
   ctx.fillText(label, mid, above?cy-17:cy+4);
 }
 
-function levelAgo(ms){
+const ZERO=new Array(NB).fill(0);
+function stateAgo(ms){
   const now=performance.now();
   for(let i=S.history.length-1;i>=0;i--)
-    if(now-S.history[i].t>=ms) return S.history[i].v;
-  return 0;
+    if(now-S.history[i].t>=ms) return S.history[i];
+  return {v:0,b:ZERO};
 }
 
 function frame(){
   // сглаживание: быстрый подъём, мягкий спад — иначе картинка дёргается
   const target=S.raw;
   S.level += (target>S.level ? 0.55 : 0.06)*(target-S.level);
-  S.history.push({t:performance.now(), v:S.level});
+  S.history.push({t:performance.now(), v:S.level, b:S.bands.slice()});
   while(S.history.length>600) S.history.shift();
   drawBand();
   requestAnimationFrame(frame);
@@ -423,6 +444,10 @@ async function poll(){
   try{
     const m=await invoke("meters");
     S.raw = S.running ? curve(m.peak_in) : 0;
+    if(m.bands) for(let k=0;k<NB;k++){
+      const tgt = S.running ? Math.min(1, Math.pow(m.bands[k]*2.4, 0.5)) : 0;
+      S.bands[k] += (tgt>S.bands[k] ? 0.5 : 0.10)*(tgt-S.bands[k]);
+    }
     S.peakIn=m.peak_in; S.peakOut=m.peak_out; S.clip=m.clipping;
     $("micFill").style.height=(curve(m.peak_in)*100)+"%";
     $("outFill").style.height=(curve(m.peak_out)*100)+"%";
