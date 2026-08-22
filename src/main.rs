@@ -2,7 +2,7 @@
 
 mod audio;
 
-use audio::{store_db, DeviceLists, Engine};
+use audio::{store_db, DeviceLists, Engine, NBANDS};
 use serde::Serialize;
 use std::sync::atomic::Ordering;
 
@@ -17,6 +17,7 @@ struct Meters {
     clipping: bool,
     running: bool,
     underruns: u32,
+    bands: Vec<f32>,
 }
 
 #[tauri::command]
@@ -71,12 +72,17 @@ fn set_gains(state: tauri::State<AppState>, mic_db: f32, out_db: f32) {
 fn meters(state: tauri::State<AppState>) -> Meters {
     let s = &state.engine.shared;
     let clipping = s.clipping.swap(false, Ordering::Relaxed);
+    let mut bands = Vec::with_capacity(NBANDS);
+    for i in 0..NBANDS {
+        bands.push(f32::from_bits(s.bands[i].load(Ordering::Relaxed)));
+    }
     Meters {
         peak_in: f32::from_bits(s.peak_in.load(Ordering::Relaxed)),
         peak_out: f32::from_bits(s.peak_out.load(Ordering::Relaxed)),
         clipping,
         running: s.running.load(Ordering::Relaxed),
         underruns: s.underruns.swap(0, Ordering::Relaxed),
+        bands,
     }
 }
 
