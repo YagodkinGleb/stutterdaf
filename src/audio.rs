@@ -16,8 +16,14 @@ use std::time::{Duration, Instant};
 
 const SAMPLE_RATE: u32 = 48_000;
 /// Насколько быстро подтягиваем фактическую задержку к заданной, семплов за колбэк.
-/// Больше — быстрее реакция ползунка, но заметнее артефакт в момент перехода.
-const SLEW_PER_CALLBACK: usize = 256;
+/// Больше — быстрее реакция ползунка, но заметнее уплывающий тон в момент перехода.
+const SLEW_PER_CALLBACK: usize = 128;
+/// Мёртвая зона: длина очереди всё время гуляет на размер буфера,
+/// и без этого порога ядро подстраивало бы её непрерывно — отсюда дрожание тона.
+const SLEW_DEADBAND: i64 = 240;
+/// Минимальная задержка. Короче одного звукового буфера очередь пустеет,
+/// в звуке появляются провалы.
+const MIN_DELAY_MS: u32 = 20;
 
 // ---------------------------------------------------------------- общее состояние
 
@@ -380,14 +386,23 @@ fn build_daf(
             &out_cfg,
             move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
                 let gain = db_to_lin(out_shared.out_gain.load(Ordering::Relaxed));
-                let target = (out_shared.delay_ms.load(Ordering::Relaxed) as usize)
+                let target = (out_shared
+                    .delay_ms
+                    .load(Ordering::Relaxed)
+                    .max(MIN_DELAY_MS) as usize)
                     * SAMPLE_RATE as usize
                     / 1000;
 
                 let have = cons.len();
                 // Разница между желаемой и фактической задержкой.
                 // Положительная — нужно добавить тишины, отрицательная — выкинуть лишнее.
-                let mut deficit = target as i64 - have as i64;
+                let raw_deficit = target as i64 - have as i64;
+                // В пределах мёртвой зоны ничего не трогаем: очередь и так дышит.
+                let mut deficit = if raw_deficit.abs() > SLEW_DEADBAND {
+                    raw_deficit
+                } else {
+                    0
+                };
                 let mut budget = SLEW_PER_CALLBACK as i64;
                 let mut peak = 0.0f32;
                 let mut underruns = 0u32;
