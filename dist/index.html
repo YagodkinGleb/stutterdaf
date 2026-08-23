@@ -221,7 +221,7 @@ const invoke = (cmd, args) => window.__TAURI__.core.invoke(cmd, args);
 const T = {
   ru:{status_idle:"ПОКОЙ",status_run:"РАБОТА",status_fault:"НЕТ УСТРОЙСТВА",
       delay:"Задержка",mic:"Микр",out:"Выход",session:"Занятие",
-      stastop:"Стоп",settings:"Настройки",done:"Готово",
+      start:"Пуск",stop:"Стоп",settings:"Настройки",done:"Готово",
       input:"Вход",output:"Выход",lang:"Язык", ms:"мс",db:"дБ",ready:"готов",running:"идёт",paused:"пауза",
       back:"← Главное",reset:"По умолчанию",
       last:"последняя минута",over:"время вышло",long:"0–4 с",
@@ -231,7 +231,7 @@ const T = {
       devnote:"Вход и выход на одном устройстве дают меньшую задержку.",},
   en:{status_idle:"IDLE",status_run:"ACTIVE",status_fault:"NO DEVICE",
       delay:"Delay",mic:"Mic",out:"Out",session:"Session",
-      stastop:"Stop",settings:"Settings",done:"Done",
+      start:"Start",stop:"Stop",settings:"Settings",done:"Done",
       input:"Input",output:"Output",lang:"Language", ms:"ms",db:"dB",ready:"ready",running:"running",paused:"paused",
       back:"← Main",reset:"Defaults",
       last:"last minute",over:"time is up",long:"0–4 s",
@@ -300,6 +300,26 @@ function paint(){
   paintClock();
 }
 function short(n){ return n.length>22 ? n.slice(0,20)+"…" : n; }
+
+function paintClock(){
+  $("clock").textContent = S.timerMin===0 ? fmt(S.elapsed) : fmt(Math.max(0,S.remain));
+  let st = t("ready");
+  if(S.over) st = t("over");
+  else if(S.timerRunning) st = (S.timerMin>0 && S.remain<60) ? t("last") : t("running");
+  else if(S.timerMin>0 && S.remain < S.timerMin*60) st = t("paused");
+  else if(S.timerMin===0 && S.elapsed>0) st = t("paused");
+  $("timerState").textContent = st;
+}
+function fmt(s){const m=Math.floor(s/60),r=s%60;
+  return String(m).padStart(2,"0")+":"+String(r).padStart(2,"0");}
+
+const cv=$("discs"), ctx=cv.getContext("2d");
+function resize(){
+  const r=$("band").getBoundingClientRect();
+  cv.width=r.width*devicePixelRatio; cv.height=r.height*devicePixelRatio;
+  cv.style.width=r.width+"px"; cv.style.height=r.height+"px";
+  ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+}
 
 /* ================= фигуры Хладни =================
    Песок собирается там, где пластина НЕ колеблется — в узлах.
