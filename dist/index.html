@@ -99,25 +99,10 @@ header .right{margin-left:auto;display:flex;align-items:center;gap:16px}
 .dev.sel{background:var(--blue);color:#fff;border-color:var(--blue);position:relative;z-index:1}
 .dev .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dev .rate{margin-left:auto;font-size:9.5px;opacity:.6;flex:none}
-#rtValue{font-size:52px;letter-spacing:-.04em;line-height:1;margin-top:4px}
-#rtValue small{font-size:15px;letter-spacing:0;margin-left:4px}
-#rtNote{font-size:11px;font-weight:600;line-height:1.45;margin-top:10px;color:var(--muted)}
-#measureBtn{margin-top:16px}
 #err{color:var(--blue);font-size:11.5px;font-weight:600;margin-top:10px;min-height:15px;line-height:1.4}
 .footer{flex:none;border-top:1px solid var(--hair);padding:12px 20px 18px;
   display:flex;align-items:center;gap:12px}
 .footer .right{margin-left:auto;display:flex;gap:10px}
-#subWrap{display:flex;align-items:center;gap:9px;margin-left:16px;cursor:pointer;
-  font-size:12px;font-weight:600}
-.cbox{width:14px;height:14px;border:2px solid var(--ink);flex:none}
-.cbox.on{background:var(--ink)}
-#breakdown{margin-top:12px}
-.brow{display:flex;align-items:center;gap:10px;margin-bottom:5px;font-size:11px;font-weight:600}
-.brow .nm{width:112px;color:var(--muted)}
-.brow .bar{flex:1;height:7px;background:var(--slab);position:relative}
-.brow .bar i{position:absolute;left:0;top:0;bottom:0;background:var(--ink);display:block}
-.brow .bar i.acc{background:var(--blue)}
-.brow .num{width:44px;text-align:right}
 .solid{background:var(--ink);color:var(--paper);border:2px solid var(--ink);border-radius:0;
   font:inherit;font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:9px 18px;cursor:pointer}
 </style>
@@ -144,7 +129,6 @@ header .right{margin-left:auto;display:flex;align-items:center;gap:16px}
         <div id="delayValue">120<small>мс</small></div>
         <div id="delaySlab"><div id="delayFill"></div><div id="delayMarker"></div></div>
         <div id="scale"></div>
-        <div id="floorNote"></div>
       </div>
 
       <div id="tilesCell">
@@ -211,24 +195,17 @@ header .right{margin-left:auto;display:flex;align-items:center;gap:16px}
       <div>
         <div class="caps" id="lblInput">Вход</div>
         <div class="devlist" id="inputs"></div>
+      </div>
+      <div>
         <div class="caps" id="lblOutput">Выход</div>
         <div class="devlist" id="outputs"></div>
         <div id="devNote" style="font-size:11px;font-weight:600;color:var(--muted);line-height:1.45"></div>
-      </div>
-      <div>
-        <div class="caps" id="lblRt">Задержка оборудования</div>
-        <div id="rtValue" class="mono">—<small>мс</small></div>
-        <div id="breakdown"></div>
-        <div id="rtNote"></div>
-        <button class="ghost" id="measureBtn">Измерить</button>
-        <div id="err"></div>
       </div>
     </div>
     <div class="footer">
       <span class="caps" id="lblLang">Язык</span>
       <button class="tile" id="langEn" style="width:56px">EN</button>
       <button class="tile on" id="langRu" style="width:56px">RU</button>
-      <label id="subWrap"><span class="cbox" id="subBox"></span><span id="subLbl">Вычитать из заданной задержки</span></label>
       <div class="right">
         <button class="ghost" id="resetBtn">По умолчанию</button>
         <button class="solid" id="doneBtn">Готово</button>
@@ -244,39 +221,29 @@ const invoke = (cmd, args) => window.__TAURI__.core.invoke(cmd, args);
 const T = {
   ru:{status_idle:"ПОКОЙ",status_run:"РАБОТА",status_fault:"НЕТ УСТРОЙСТВА",
       delay:"Задержка",mic:"Микр",out:"Выход",session:"Занятие",
-      start:"Пуск",stop:"Стоп",settings:"Настройки",done:"Готово",
-      input:"Вход",output:"Выход",rt:"Задержка оборудования",lang:"Язык",
-      measure:"Измерить",ms:"мс",db:"дБ",ready:"готов",running:"идёт",paused:"пауза",
-      back:"← Главное",reset:"По умолчанию",subtract:"Вычитать из заданной задержки",
-      b_set:"Задано",b_path:"Тракт",b_total:"Итого в ушах",
+      stastop:"Стоп",settings:"Настройки",done:"Готово",
+      input:"Вход",output:"Выход",lang:"Язык", ms:"мс",db:"дБ",ready:"готов",running:"идёт",paused:"пауза",
+      back:"← Главное",reset:"По умолчанию",
       last:"последняя минута",over:"время вышло",long:"0–4 с",
       voice:"ГОЛОС",ret:"ВОЗВРАТ",
       hint_slow:"Тяните гласные, идите вслед за звуком",
       hint_normal:"Говорите в обычном темпе",
-      devnote:"Вход и выход на одном устройстве дают меньшую задержку.",
-      rtnote:"Проигрывает щелчок в наушники и слушает его микрофоном. Наденьте наушники и поднесите чашку к микрофону.",
-      floor:n=>`Тракт уже даёт ${n} мс — короче не выйдет`,
-      measuring:"Идёт замер, около пяти секунд..."},
+      devnote:"Вход и выход на одном устройстве дают меньшую задержку.",},
   en:{status_idle:"IDLE",status_run:"ACTIVE",status_fault:"NO DEVICE",
       delay:"Delay",mic:"Mic",out:"Out",session:"Session",
-      start:"Start",stop:"Stop",settings:"Settings",done:"Done",
-      input:"Input",output:"Output",rt:"Hardware round trip",lang:"Language",
-      measure:"Measure",ms:"ms",db:"dB",ready:"ready",running:"running",paused:"paused",
-      back:"← Main",reset:"Defaults",subtract:"Subtract from the delay you set",
-      b_set:"Set",b_path:"Path",b_total:"In your ears",
+      stastop:"Stop",settings:"Settings",done:"Done",
+      input:"Input",output:"Output",lang:"Language", ms:"ms",db:"dB",ready:"ready",running:"running",paused:"paused",
+      back:"← Main",reset:"Defaults",
       last:"last minute",over:"time is up",long:"0–4 s",
       voice:"VOICE",ret:"RETURN",
       hint_slow:"Stretch the vowels, follow the sound",
       hint_normal:"Speak at your normal pace",
-      devnote:"One device for input and output gives lower latency.",
-      rtnote:"Plays a click into the headphones and listens for it. Keep the headset on and hold a cup to the microphone.",
-      floor:n=>`The path already adds ${n} ms — no shorter`,
-      measuring:"Measuring, about five seconds..."}
+      devnote:"One device for input and output gives lower latency.",}
 };
 
 const S = {
   lang:"ru", delay:120, longMode:false, running:false,
-  micDb:0, outDb:-12, floor:0, subtract:false,
+  micDb:0, outDb:-12,
   input:null, output:null, inputs:[], outputs:[],
   timerMin:30, remain:30*60, timerRunning:false, over:false, elapsed:0,
   raw:0, level:0, bands:new Array(8).fill(0), history:[], peakIn:0, peakOut:0, clip:false
@@ -285,12 +252,11 @@ const S = {
 const $ = id => document.getElementById(id);
 const t = k => T[S.lang][k];
 
-// Без вычитания ползунок задаёт программную задержку, тракт добавляется сверху.
-// С вычитанием ползунок задаёт то, что реально слышно, а программа отнимает тракт.
-function minDelay(){ return S.subtract ? Math.max(20,Math.ceil(S.floor)) : 20; }
-function softDelay(){ return S.subtract ? Math.max(0, Math.round(S.delay-S.floor)) : S.delay; }
-function totalDelay(){ return S.subtract ? S.delay : Math.round(S.delay+S.floor); }
-function pushDelay(){ invoke("set_delay",{delayMs:softDelay()}).catch(()=>{}); }
+// Ползунок задаёт задержку напрямую. Ниже 20 мс уходить нельзя:
+// очередь станет короче одного звукового буфера, пойдут провалы и уплывающий тон.
+const MIN_DELAY=20;
+function minDelay(){ return MIN_DELAY; }
+function pushDelay(){ invoke("set_delay",{delayMs:S.delay}).catch(()=>{}); }
 function maxDelay(){ return S.longMode ? 4000 : 400; }
 
 function paint(){
@@ -306,8 +272,6 @@ function paint(){
 
   const marks = S.longMode ? [0,1000,2000,3000,4000] : [20,100,200,300,400];
   $("scale").innerHTML = marks.map(m=>`<span>${m}</span>`).join("");
-  $("floorNote").textContent = (S.floor>1 && !S.subtract)
-      ? t("floor")(Math.round(S.floor)) : "";
 
   document.querySelectorAll(".preset").forEach(b=>b.classList.toggle("on", +b.dataset.v===d));
   $("longTile").classList.toggle("on", S.longMode);
@@ -322,15 +286,10 @@ function paint(){
   $("lblDelay").textContent=t("delay"); $("lblMic").textContent=t("mic");
   $("lblOut").textContent=t("out");     $("lblSession").textContent=t("session");
   $("lblInput").textContent=t("input"); $("lblOutput").textContent=t("output");
-  $("lblRt").textContent=t("rt");       $("lblLang").textContent=t("lang");
-  $("settingsBtn").textContent=t("settings"); $("measureBtn").textContent=t("measure");
+  $("lblLang").textContent=t("lang");
+  $("settingsBtn").textContent=t("settings");
   $("doneBtn").textContent=t("done");   $("devNote").textContent=t("devnote");
-  if(!$("rtNote").dataset.busy) $("rtNote").textContent = t("rtnote");
-  $("rtValue").innerHTML = (S.floor?S.floor.toFixed(1):"—")+'<small>'+t("ms")+'</small>';
   $("backBtn").textContent=t("back"); $("resetBtn").textContent=t("reset");
-  $("subLbl").textContent=t("subtract");
-  $("subBox").classList.toggle("on",S.subtract);
-  paintBreakdown();
 
   $("micVal").textContent = S.micDb.toFixed(0)+" "+t("db");
   $("outVal").textContent = S.outDb.toFixed(0)+" "+t("db");
@@ -341,39 +300,6 @@ function paint(){
   paintClock();
 }
 function short(n){ return n.length>22 ? n.slice(0,20)+"…" : n; }
-
-// Честная разбивка: только то, что мы правда знаем —
-// заданная программная задержка и измеренный тракт.
-function paintBreakdown(){
-  const soft=softDelay(), path=Math.round(S.floor), total=totalDelay();
-  const scale=Math.max(total,1);
-  const row=(nm,v,acc)=>`<div class="brow"><span class="nm">${nm}</span>
-    <span class="bar"><i class="${acc?'acc':''}" style="width:${Math.min(100,v/scale*100)}%"></i></span>
-    <span class="num mono">${v}</span></div>`;
-  $("breakdown").innerHTML =
-      row(t("b_set"),soft,false)+row(t("b_path"),path,false)+row(t("b_total"),total,true);
-}
-
-function paintClock(){
-  $("clock").textContent = S.timerMin===0 ? fmt(S.elapsed) : fmt(Math.max(0,S.remain));
-  let st = t("ready");
-  if(S.over) st = t("over");
-  else if(S.timerRunning) st = (S.timerMin>0 && S.remain<60) ? t("last") : t("running");
-  else if(S.timerMin>0 && S.remain < S.timerMin*60) st = t("paused");
-  else if(S.timerMin===0 && S.elapsed>0) st = t("paused");
-  $("timerState").textContent = st;
-}
-function fmt(s){const m=Math.floor(s/60),r=s%60;
-  return String(m).padStart(2,"0")+":"+String(r).padStart(2,"0");}
-
-/* ---------------- диски ---------------- */
-const cv=$("discs"), ctx=cv.getContext("2d");
-function resize(){
-  const r=$("band").getBoundingClientRect();
-  cv.width=r.width*devicePixelRatio; cv.height=r.height*devicePixelRatio;
-  cv.style.width=r.width+"px"; cv.style.height=r.height+"px";
-  ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
-}
 
 /* ================= фигуры Хладни =================
    Песок собирается там, где пластина НЕ колеблется — в узлах.
@@ -628,7 +554,7 @@ $("startBtn").onclick=async()=>{
   }else{
     if(!S.input||!S.output){openSettings();return;}
     try{
-      await invoke("start",{input:S.input,output:S.output,delayMs:softDelay()});
+      await invoke("start",{input:S.input,output:S.output,delayMs:S.delay});
       await invoke("set_gains",{micDb:S.micDb,outDb:S.outDb});
       S.running=true; S.over=false;
       if(!S.timerRunning) S.timerRunning=true;
@@ -695,14 +621,8 @@ $("doneBtn").onclick=()=>{
   resize(); paint(); save();
 };
 
-$("subWrap").onclick=()=>{
-  S.subtract=!S.subtract;
-  if(S.delay<minDelay()) S.delay=minDelay();
-  pushDelay(); paint(); save();
-};
-
 $("resetBtn").onclick=()=>{
-  Object.assign(S,{delay:120,micDb:0,outDb:-12,timerMin:30,longMode:false,subtract:false});
+  Object.assign(S,{delay:120,micDb:0,outDb:-12,timerMin:30,longMode:false});
   S.remain=S.timerMin*60; S.elapsed=0; S.over=false;
   pushDelay(); paint(); save();
 };
@@ -722,19 +642,6 @@ function renderDevices(){
   mk(S.outputs,S.output,"outputs","output");
 }
 
-$("measureBtn").onclick=async()=>{
-  if(!S.input||!S.output) return;
-  $("rtNote").dataset.busy="1";
-  $("rtNote").textContent=t("measuring");
-  $("err").textContent="";
-  try{
-    const ms=await invoke("measure",{input:S.input,output:S.output});
-    S.floor=ms;
-    if(S.delay<minDelay()) S.delay=minDelay();
-  }catch(e){ $("err").textContent=String(e); }
-  delete $("rtNote").dataset.busy;
-  paint(); save();
-};
 
 $("langRu").onclick=()=>{S.lang="ru";$("langRu").classList.add("on");$("langEn").classList.remove("on");document.documentElement.lang="ru";paint();save();};
 $("langEn").onclick=()=>{S.lang="en";$("langEn").classList.add("on");$("langRu").classList.remove("on");document.documentElement.lang="en";paint();save();};
@@ -745,7 +652,7 @@ function save(){
   saveTimer=setTimeout(()=>{
     invoke("save_settings",{json:JSON.stringify({
       lang:S.lang,delay:S.delay,micDb:S.micDb,outDb:S.outDb,
-      floor:S.floor,input:S.input,output:S.output,timerMin:S.timerMin,subtract:S.subtract
+      input:S.input,output:S.output,timerMin:S.timerMin
     })}).catch(()=>{});
   },400);
 }
@@ -756,8 +663,7 @@ async function boot(){
     const d=JSON.parse(await invoke("load_settings")||"{}");
     Object.assign(S,{
       lang:d.lang||"ru",delay:d.delay||120,micDb:d.micDb??0,outDb:d.outDb??-12,
-      floor:d.floor||0,input:d.input||null,output:d.output||null,timerMin:d.timerMin??30,
-      subtract:d.subtract??false
+      input:d.input||null,output:d.output||null,timerMin:d.timerMin??30
     });
     S.remain=S.timerMin*60;
   }catch(e){}
