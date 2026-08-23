@@ -36,7 +36,7 @@ fn start(
         .engine
         .shared
         .delay_ms
-        .store(delay_ms.clamp(0, 4000), Ordering::Relaxed);
+        .store(delay_ms.clamp(20, 4000), Ordering::Relaxed);
     state.engine.start(input, output)
 }
 
@@ -51,7 +51,7 @@ fn set_delay(state: tauri::State<AppState>, delay_ms: u32) {
         .engine
         .shared
         .delay_ms
-        .store(delay_ms.clamp(0, 4000), Ordering::Relaxed);
+        .store(delay_ms.clamp(20, 4000), Ordering::Relaxed);
 }
 
 #[tauri::command]
