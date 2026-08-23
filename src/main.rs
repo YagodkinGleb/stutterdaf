@@ -91,6 +91,35 @@ fn measure(state: tauri::State<AppState>, input: String, output: String) -> Resu
     state.engine.measure(input, output)
 }
 
+/// Открывает страницу поддержки во внешнем браузере.
+/// Адрес зашит намеренно: команда не принимает произвольную ссылку,
+/// чтобы через неё нельзя было запустить что-то постороннее.
+#[tauri::command]
+fn open_support() -> Result<(), String> {
+    const URL: &str = "https://boosty.to/yagojeez";
+
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        std::process::Command::new("cmd")
+            .args(["/C", "start", "", URL])
+            .creation_flags(CREATE_NO_WINDOW)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+
+    #[cfg(not(windows))]
+    {
+        std::process::Command::new("xdg-open")
+            .arg(URL)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+
+    Ok(())
+}
+
 // ---------------------------------------------------------------- настройки на диске
 
 fn settings_path() -> Option<std::path::PathBuf> {
@@ -127,7 +156,8 @@ fn main() {
             meters,
             measure,
             load_settings,
-            save_settings
+            save_settings,
+            open_support
         ])
         .run(tauri::generate_context!())
         .expect("не удалось запустить приложение");
