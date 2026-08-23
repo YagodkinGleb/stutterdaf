@@ -103,6 +103,11 @@ header .right{margin-left:auto;display:flex;align-items:center;gap:16px}
 .footer{flex:none;border-top:1px solid var(--hair);padding:12px 20px 18px;
   display:flex;align-items:center;gap:12px}
 .footer .right{margin-left:auto;display:flex;gap:10px}
+#about{margin-top:26px;padding-top:18px;border-top:1px solid var(--hair)}
+#author{font-size:15px;margin-top:6px}
+#encourage{font-size:11.5px;font-weight:600;color:var(--muted);line-height:1.5;
+  margin-top:8px;max-width:340px}
+#supportBtn{margin-top:14px}
 .solid{background:var(--ink);color:var(--paper);border:2px solid var(--ink);border-radius:0;
   font:inherit;font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:9px 18px;cursor:pointer}
 </style>
@@ -200,6 +205,13 @@ header .right{margin-left:auto;display:flex;align-items:center;gap:16px}
         <div class="caps" id="lblOutput">Выход</div>
         <div class="devlist" id="outputs"></div>
         <div id="devNote" style="font-size:11px;font-weight:600;color:var(--muted);line-height:1.45"></div>
+
+        <div id="about">
+          <div class="caps" id="lblAbout">Разработчик</div>
+          <div id="author">Глеб Ягодкин</div>
+          <div id="encourage"></div>
+          <button class="ghost" id="supportBtn">Поддержать</button>
+        </div>
       </div>
     </div>
     <div class="footer">
@@ -226,8 +238,10 @@ const T = {
       back:"← Главное",reset:"По умолчанию",
       last:"последняя минута",over:"время вышло",long:"0–4 с",
       voice:"ГОЛОС",ret:"ВОЗВРАТ",
-      hint_slow:"Тяните гласные, идите вслед за звуком",
-      hint_normal:"Говорите в обычном темпе",
+      about:"Разработчик",author:"Глеб Ягодкин",support:"Поддержать",
+      encourage:"У вас всё получится. Занимайтесь по 20–30 минут в день.",
+      hint_slow:"Замедлитесь так, чтобы ваш голос совпадал со звуком в наушниках",
+      hint_normal:"Говорите так, чтобы попадать в звук в наушниках",
       devnote:"Вход и выход на одном устройстве дают меньшую задержку.",},
   en:{status_idle:"IDLE",status_run:"ACTIVE",status_fault:"NO DEVICE",
       delay:"Delay",mic:"Mic",out:"Out",session:"Session",
@@ -236,8 +250,10 @@ const T = {
       back:"← Main",reset:"Defaults",
       last:"last minute",over:"time is up",long:"0–4 s",
       voice:"VOICE",ret:"RETURN",
-      hint_slow:"Stretch the vowels, follow the sound",
-      hint_normal:"Speak at your normal pace",
+      about:"Developer",author:"Gleb Yagodkin",support:"Support",
+      encourage:"You can do this. Practise 20–30 minutes a day.",
+      hint_slow:"Slow down until your voice matches the sound in the headphones",
+      hint_normal:"Speak so that you land together with the sound in the headphones",
       devnote:"One device for input and output gives lower latency.",}
 };
 
@@ -290,6 +306,8 @@ function paint(){
   $("settingsBtn").textContent=t("settings");
   $("doneBtn").textContent=t("done");   $("devNote").textContent=t("devnote");
   $("backBtn").textContent=t("back"); $("resetBtn").textContent=t("reset");
+  $("lblAbout").textContent=t("about"); $("author").textContent=t("author");
+  $("encourage").textContent=t("encourage"); $("supportBtn").textContent=t("support");
 
   $("micVal").textContent = S.micDb.toFixed(0)+" "+t("db");
   $("outVal").textContent = S.outDb.toFixed(0)+" "+t("db");
@@ -633,6 +651,7 @@ function openSettings(){
 }
 $("settingsBtn").onclick=openSettings;
 $("backBtn").onclick=()=>$("doneBtn").click();
+$("supportBtn").onclick=()=>invoke("open_support").catch(()=>{});
 $("doneBtn").onclick=()=>{
   $("settings").classList.remove("show");
   $("main").style.display="flex";
